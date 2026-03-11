@@ -1,0 +1,189 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const REASONS = [
+  "I'm not earning enough",
+  "I found a better platform",
+  "I don't use Instagram anymore",
+  "Privacy concerns",
+  "Too complicated to use",
+  "Other",
+];
+
+export default function DeleteAccountScreen() {
+  const router = useRouter();
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [otherReason, setOtherReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+
+  const canDelete = selectedReason && confirmText === "DELETE";
+
+  const handleDelete = () => {
+    if (!canDelete) return;
+
+    Alert.alert(
+      "Final Confirmation",
+      "This will permanently delete your account, all earnings data, bank details, and campaign history. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Forever",
+          style: "destructive",
+          onPress: () => {
+            // TODO: delete account API call
+            Alert.alert("Account Deleted", "Your account has been deleted.", [
+              {
+                text: "OK",
+                onPress: () => router.replace("/(auth)/landing" as any),
+              },
+            ]);
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-5 py-3">
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text className="text-white text-lg font-bold">Delete Account</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View className="flex-1 justify-between">
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Warning */}
+            <View className="bg-red-950/40 rounded-2xl p-5 mt-4">
+              <View className="flex-row items-center mb-3">
+                <Ionicons name="warning-outline" size={22} color="#f87171" />
+                <Text className="text-red-400 text-base font-bold ml-2">
+                  This action is permanent
+                </Text>
+              </View>
+              <Text className="text-red-300/80 text-sm leading-5">
+                Deleting your account will permanently remove all your data
+                including:
+              </Text>
+              <View className="mt-3">
+                {[
+                  "All earnings history and pending payouts",
+                  "Connected Instagram accounts",
+                  "Bank account details",
+                  "All reel campaigns and analytics",
+                  "Your profile and personal information",
+                ].map((item, index) => (
+                  <View key={index} className="flex-row items-start mb-1.5">
+                    <Text className="text-red-400 text-sm mr-2">•</Text>
+                    <Text className="text-red-300/70 text-sm">{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Reason Selection */}
+            <Text className="text-neutral-400 text-sm mt-6 mb-3">
+              Please tell us why you're leaving
+            </Text>
+            {REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                onPress={() => setSelectedReason(reason)}
+                activeOpacity={0.7}
+                className={`flex-row items-center rounded-xl px-4 py-3.5 mb-2 ${
+                  selectedReason === reason
+                    ? "bg-neutral-800 border border-amber-500/50"
+                    : "bg-neutral-900"
+                }`}
+              >
+                <View
+                  className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${
+                    selectedReason === reason
+                      ? "border-amber-500"
+                      : "border-neutral-600"
+                  }`}
+                >
+                  {selectedReason === reason && (
+                    <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  )}
+                </View>
+                <Text className="text-white text-sm">{reason}</Text>
+              </TouchableOpacity>
+            ))}
+
+            {selectedReason === "Other" && (
+              <TextInput
+                className="bg-neutral-800 rounded-xl px-4 py-3.5 text-white text-base mt-2"
+                placeholderTextColor="#555"
+                placeholder="Please specify your reason"
+                value={otherReason}
+                onChangeText={setOtherReason}
+                multiline
+              />
+            )}
+
+            {/* Confirmation */}
+            <View className="mt-6">
+              <Text className="text-neutral-400 text-sm mb-2">
+                Type <Text className="text-red-400 font-bold">DELETE</Text> to
+                confirm
+              </Text>
+              <TextInput
+                className="bg-neutral-800 rounded-xl px-4 py-3.5 text-white text-base"
+                placeholderTextColor="#555"
+                placeholder="DELETE"
+                value={confirmText}
+                onChangeText={setConfirmText}
+                autoCapitalize="characters"
+              />
+            </View>
+          </ScrollView>
+
+          {/* Delete Button */}
+          <View className="px-5 pb-8">
+            {canDelete ? (
+              <TouchableOpacity
+                className="rounded-full items-center py-4 bg-red-600"
+                activeOpacity={0.7}
+                onPress={handleDelete}
+              >
+                <Text className="text-white text-base font-semibold">
+                  Delete My Account
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View className="rounded-full items-center py-4 bg-neutral-800">
+                <Text className="text-neutral-500 text-base font-semibold">
+                  Delete my Account
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
