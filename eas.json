@@ -1,0 +1,37 @@
+{
+  "cli": {
+    "version": ">= 18.8.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env":{
+        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+      }
+    },
+    "preview": {
+      "channel": "preview",
+      "distribution": "internal",
+      "env":{
+        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env":{
+        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

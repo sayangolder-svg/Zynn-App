@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import { withLayoutContext } from "expo-router";
-import { useEffect, useRef } from "react";
+import { Redirect, withLayoutContext } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
+import { api } from "@/lib/api";
+import { clearAuthToken, getAuthToken } from "@/lib/session";
 
 const { Navigator } = createMaterialTopTabNavigator();
 const MaterialTopTabs = withLayoutContext(Navigator);
@@ -68,10 +70,40 @@ function AnimatedTabIcon({
 }
 
 export default function TabsLayout() {
+  const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function checkAccess() {
+      const token = await getAuthToken();
+      if (!token) {
+        if (mounted) setIsAllowed(false);
+        return;
+      }
+
+      try {
+        await api.get("/profile/");
+        if (mounted) setIsAllowed(true);
+      } catch {
+        await clearAuthToken();
+        if (mounted) setIsAllowed(false);
+      }
+    }
+
+    checkAccess();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (isAllowed === null) return null;
+  if (!isAllowed) return <Redirect href="/(auth)/landing" />;
+
   return (
     <MaterialTopTabs
       screenOptions={{
-        swipeEnabled: true,
+        swipeEnabled: false,
         animationEnabled: true,
         lazy: true,
         tabBarStyle: {

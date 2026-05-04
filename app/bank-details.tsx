@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -33,8 +34,9 @@ export default function BankDetailsScreen() {
   const [ifsc, setIfsc] = useState("");
   const [pan, setPan] = useState("");
   const [holderName, setHolderName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (
       !accountNumber ||
       !confirmAccountNumber ||
@@ -49,27 +51,21 @@ export default function BankDetailsScreen() {
       Alert.alert("Error", "Account numbers do not match.");
       return;
     }
-
-    // Derive bank name from IFSC prefix (first 4 chars) as a simple heuristic
-    const bankName = ifsc.substring(0, 4).toUpperCase();
-
-    // Mask account number for display (show last 4 digits)
-    const masked =
-      "X".repeat(Math.max(0, accountNumber.length - 4)) +
-      accountNumber.slice(-4);
-
-    const newAccount = JSON.stringify({
-      bankName,
-      accountNumber: masked,
-      ifsc: ifsc.toUpperCase(),
-      pan: pan.toUpperCase(),
-      holderName: holderName.toUpperCase(),
-    });
-
-    router.replace({
-      pathname: "/(tabs)/earnings" as any,
-      params: { newAccount },
-    });
+    try {
+      setLoading(true);
+      await api.post("/bank-accounts/", {
+        bank_name: ifsc.substring(0, 4).toUpperCase(),
+        account_number: accountNumber,
+        ifsc: ifsc.toUpperCase(),
+        pan: pan.toUpperCase(),
+        holder_name: holderName.toUpperCase(),
+      });
+      router.replace("/(tabs)/earnings" as any);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to save bank details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -173,8 +169,11 @@ export default function BankDetailsScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleSave}
               activeOpacity={0.8}
+              disabled={loading}
             >
-              <Text className="text-white text-base font-semibold">Save</Text>
+              <Text className="text-white text-base font-semibold">
+                {loading ? "Saving..." : "Save"}
+              </Text>
             </TouchableOpacity>
           </LinearGradient>
 

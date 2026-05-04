@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
 import { Animated, Dimensions, PanResponder, Text, View } from "react-native";
 
@@ -21,12 +21,11 @@ export default function SlideToActivate({
   );
   const maxSlide = containerWidth - THUMB_SIZE - HORIZONTAL_PADDING * 2;
   const translateX = useRef(new Animated.Value(0)).current;
-  const [activated, setActivated] = useState(false);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !activated,
-      onMoveShouldSetPanResponder: () => !activated,
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gestureState) => {
         const newX = Math.max(0, Math.min(gestureState.dx, maxSlide));
         translateX.setValue(newX);
@@ -37,8 +36,12 @@ export default function SlideToActivate({
             toValue: maxSlide,
             useNativeDriver: true,
           }).start(() => {
-            setActivated(true);
             onActivate();
+            Animated.timing(translateX, {
+              toValue: 0,
+              duration: 220,
+              useNativeDriver: true,
+            }).start();
           });
         } else {
           Animated.spring(translateX, {

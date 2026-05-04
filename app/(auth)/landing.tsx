@@ -14,7 +14,6 @@ export default function LandingScreen() {
         <Text className="text-white text-4xl font-bold text-center mb-12">
           Monetize Your{"\n"}Influence.
         </Text>
-
         <View className="w-full gap-4">
           <TouchableOpacity className="w-full flex-row items-center justify-center py-4 rounded-xl border border-neutral-700 bg-neutral-900/50">
             <Ionicons name="logo-apple" size={20} color="white" />
@@ -38,9 +37,9 @@ export default function LandingScreen() {
             className="w-full flex-row items-center justify-center py-4 rounded-xl border border-neutral-700 bg-neutral-900/50"
             onPress={() => router.push("/phone")}
           >
-            <Ionicons name="call-outline" size={20} color="white" />
+            <Ionicons name="mail-outline" size={20} color="white" />
             <Text className="text-white text-base font-medium ml-3">
-              Continue with Phone
+              Continue with Email
             </Text>
           </TouchableOpacity>
         </View>

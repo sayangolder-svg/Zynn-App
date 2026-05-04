@@ -1,26 +1,30 @@
 import MaskedView from "@react-native-masked-view/masked-view";
+import { api } from "@/lib/api";
+import { setAuthToken } from "@/lib/session";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const OTP_LENGTH = 6;
 
-export default function PhoneOtpScreen() {
+export default function EmailOtpScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [resendTimer, setResendTimer] = useState(30);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -33,7 +37,6 @@ export default function PhoneOtpScreen() {
     const newOtp = [...otp];
     newOtp[index] = text;
     setOtp(newOtp);
-
     if (text && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -45,18 +48,45 @@ export default function PhoneOtpScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = otp.join("");
-    if (code.length === OTP_LENGTH) {
+    if (code.length !== OTP_LENGTH || !email) return;
+    try {
+      setLoading(true);
+      const response = await api.post<{ token: string }>(
+        "/auth/email/verify/",
+        {
+          email,
+          otp: code,
+        },
+        false,
+      );
+      await setAuthToken(response.token);
       router.push("/(auth)/instagram");
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Verification failed",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendTimer === 0) {
-      setResendTimer(30);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      try {
+        if (!email) return;
+        await api.post("/auth/email/start/", { email }, false);
+        setResendTimer(30);
+        setOtp(Array(OTP_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+      } catch (error) {
+        Alert.alert(
+          "Error",
+          error instanceof Error ? error.message : "Failed to resend OTP",
+        );
+      }
     }
   };
 
@@ -67,12 +97,10 @@ export default function PhoneOtpScreen() {
         className="flex-1"
       >
         <View className="flex-1 px-6 pt-16">
-          {/* Title */}
           <Text className="text-neutral-300 text-base text-center mb-8 leading-6">
-            Enter the 6 digit code sent to your{"\n"}Phone number
+            Enter the 6 digit code sent to your{"\n"}email
           </Text>
 
-          {/* OTP Inputs */}
           <View className="flex-row justify-center gap-3 mb-4">
             {otp.map((digit, index) => (
               <TextInput
@@ -91,10 +119,8 @@ export default function PhoneOtpScreen() {
             ))}
           </View>
 
-          {/* Divider */}
           <View className="h-px bg-neutral-700 mx-2 mb-6" />
 
-          {/* Resend */}
           <View className="flex-row justify-center mb-10">
             <Text className="text-neutral-500 text-sm">
               Didn't receive code?{" "}
@@ -111,7 +137,6 @@ export default function PhoneOtpScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Verify Button */}
           <LinearGradient
             colors={[
               "#FB812F",
@@ -131,15 +156,15 @@ export default function PhoneOtpScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleVerify}
               activeOpacity={0.8}
+              disabled={loading}
             >
               <Text className="text-white text-base font-semibold">
-                Verify and continue
+                {loading ? "Verifying..." : "Verify and continue"}
               </Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
 
-        {/* Bottom Image with Transparent Top Fade */}
         <MaskedView
           style={{ height: 200, width: "100%" }}
           maskElement={

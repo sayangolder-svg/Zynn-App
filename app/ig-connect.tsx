@@ -1,8 +1,10 @@
 import MaskedView from "@react-native-masked-view/masked-view";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -27,13 +29,22 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 export default function IGConnectScreen() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
-    if (username.trim().length > 0) {
+  const handleContinue = async () => {
+    const cleanUsername = username.trim().toLowerCase();
+    if (!cleanUsername) return;
+    try {
+      setLoading(true);
+      await api.post("/auth/instagram/start/", { username: cleanUsername });
       router.push({
         pathname: "/ig-otp" as any,
-        params: { username: username.trim() },
+        params: { username: cleanUsername },
       });
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,7 +77,7 @@ export default function IGConnectScreen() {
             />
 
             <Text className="text-neutral-500 text-xs text-center">
-              We'll send a 6 digit code to your instagram DM
+              We'll send a 6 digit code to your email
             </Text>
           </View>
 
@@ -87,9 +98,10 @@ export default function IGConnectScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleContinue}
               activeOpacity={0.8}
+              disabled={loading}
             >
               <Text className="text-white text-base font-semibold">
-                Continue
+                {loading ? "Sending..." : "Continue"}
               </Text>
             </TouchableOpacity>
           </LinearGradient>

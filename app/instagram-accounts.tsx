@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert } from "react-native";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,23 +19,29 @@ const GRADIENT_COLORS = [
 const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 interface IGAccount {
-  id: string;
-  name: string;
-  email: string;
-  initials: string;
+  id: number;
+  username: string;
+  is_verified: boolean;
 }
-
-const MOCK_ACCOUNTS: IGAccount[] = [
-  {
-    id: "1",
-    name: "HELLO XYZ",
-    email: "xyz@gmail.com",
-    initials: "XY",
-  },
-];
 
 export default function InstagramAccountsScreen() {
   const router = useRouter();
+  const [accounts, setAccounts] = useState<IGAccount[]>([]);
+
+  const loadAccounts = useCallback(async () => {
+    try {
+      const data = await api.get<IGAccount[]>("/instagram-accounts/");
+      setAccounts(data);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to load accounts");
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadAccounts();
+    }, [loadAccounts]),
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
@@ -52,22 +61,22 @@ export default function InstagramAccountsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Account Cards */}
-          {MOCK_ACCOUNTS.map((account) => (
+          {accounts.map((account) => (
             <View
               key={account.id}
               className="bg-neutral-900 rounded-2xl flex-row items-center px-4 py-4 mb-3"
             >
               <View className="w-12 h-12 rounded-full bg-neutral-600 items-center justify-center mr-3">
                 <Text className="text-white text-lg font-bold">
-                  {account.initials}
+                  {account.username.slice(0, 2).toUpperCase()}
                 </Text>
               </View>
               <View>
                 <Text className="text-white text-sm font-bold">
-                  {account.name}
+                  @{account.username}
                 </Text>
                 <Text className="text-neutral-500 text-xs mt-0.5">
-                  {account.email}
+                  {account.is_verified ? "Verified" : "Pending verification"}
                 </Text>
               </View>
             </View>

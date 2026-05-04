@@ -1,8 +1,10 @@
 import MaskedView from "@react-native-masked-view/masked-view";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,17 +15,31 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function PhoneScreen() {
+export default function EmailScreen() {
   const router = useRouter();
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [countryCode, setCountryCode] = useState("+91");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOTP = () => {
-    if (phoneNumber.length >= 10) {
+  const handleSendOTP = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      Alert.alert("Invalid email", "Please enter a valid email address.");
+      return;
+    }
+    try {
+      setLoading(true);
+      await api.post("/auth/email/start/", { email: cleanEmail }, false);
       router.push({
         pathname: "/(auth)/phone-otp",
-        params: { phone: `${countryCode}${phoneNumber}` },
+        params: { email: cleanEmail },
       });
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to send OTP",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,40 +49,25 @@ export default function PhoneScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        {/* Main Content */}
         <View className="flex-1 px-6 pt-12">
-          {/* Title */}
           <Text className="text-white text-2xl font-bold text-center mb-10">
-            Create/Log in Account
+            Login with Email
           </Text>
 
-          {/* Phone Input Card */}
           <View className="bg-neutral-900 rounded-2xl p-5 mb-8">
-            <Text className="text-neutral-400 text-sm mb-3">Phone number</Text>
-            <View className="flex-row items-center bg-neutral-800 rounded-xl px-4 py-3">
-              {/* Country Code */}
-              <TouchableOpacity className="flex-row items-center mr-3">
-                <Text className="text-white text-base">{countryCode}</Text>
-                <Text className="text-neutral-400 text-xs ml-1">▼</Text>
-              </TouchableOpacity>
-
-              {/* Divider */}
-              <View className="w-px h-5 bg-neutral-600 mr-3" />
-
-              {/* Phone Input */}
-              <TextInput
-                className="flex-1 text-white text-base"
-                placeholder="Enter phone number"
-                placeholderTextColor="#6b7280"
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                maxLength={15}
-              />
-            </View>
+            <Text className="text-neutral-400 text-sm mb-3">Email address</Text>
+            <TextInput
+              className="bg-neutral-800 rounded-xl px-4 py-3 text-white text-base"
+              placeholder="Enter your email"
+              placeholderTextColor="#6b7280"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={email}
+              onChangeText={setEmail}
+            />
           </View>
 
-          {/* Send OTP Button */}
           <LinearGradient
             colors={[
               "#FB812F",
@@ -86,15 +87,15 @@ export default function PhoneScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleSendOTP}
               activeOpacity={0.8}
+              disabled={loading}
             >
               <Text className="text-white text-base font-semibold">
-                Send OTP
+                {loading ? "Sending..." : "Send OTP"}
               </Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
 
-        {/* Bottom Image with Transparent Top Fade */}
         <MaskedView
           style={{ height: 200, width: "100%" }}
           maskElement={

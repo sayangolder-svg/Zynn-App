@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
     Alert,
     KeyboardAvoidingView,
@@ -30,8 +31,24 @@ export default function EditProfileScreen() {
   const [name, setName] = useState("HELLO XYZ");
   const [email, setEmail] = useState("xyz@gmail.com");
   const [bio, setBio] = useState("");
+  const [phone, setPhone] = useState("+91");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
+  useFocusEffect(
+    useCallback(() => {
+      api
+        .get<{ name: string; email: string; bio: string; phone: string }>("/profile/")
+        .then((profile) => {
+          setName(profile.name || "");
+          setEmail(profile.email || "");
+          setBio(profile.bio || "");
+          setPhone(profile.phone || "");
+        })
+        .catch(() => {});
+    }, []),
+  );
+
+  const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Name cannot be empty.");
       return;
@@ -40,10 +57,17 @@ export default function EditProfileScreen() {
       Alert.alert("Error", "Email cannot be empty.");
       return;
     }
-    // TODO: persist profile changes
-    Alert.alert("Saved", "Your profile has been updated.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    try {
+      setLoading(true);
+      await api.put("/profile/", { name: name.trim(), email: email.trim(), bio });
+      Alert.alert("Saved", "Your profile has been updated.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,7 +152,7 @@ export default function EditProfileScreen() {
               </Text>
               <View className="bg-neutral-800 rounded-xl px-4 py-3.5 flex-row items-center justify-between">
                 <Text className="text-neutral-500 text-base">
-                  +91 98XXXXX00
+                  {phone}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.push("/change-phone" as any)}
@@ -176,9 +200,10 @@ export default function EditProfileScreen() {
                 className="rounded-full items-center py-4 bg-neutral-950"
                 activeOpacity={0.7}
                 onPress={handleSave}
+                disabled={loading}
               >
                 <Text className="text-white text-base font-semibold">
-                  Save Changes
+                  {loading ? "Saving..." : "Save Changes"}
                 </Text>
               </TouchableOpacity>
             </LinearGradient>

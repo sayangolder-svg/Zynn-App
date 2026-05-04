@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -31,16 +32,24 @@ export default function ContactFormScreen() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [concern, setConcern] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !email || !phone || !concern) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
-    // TODO: send contact form
-    Alert.alert("Submitted", "We will reach out to you ASAP!", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    try {
+      setLoading(true);
+      await api.post("/contact/", { name, email, phone, concern });
+      Alert.alert("Submitted", "We will reach out to you ASAP!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to submit");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -141,9 +150,10 @@ export default function ContactFormScreen() {
                 className="rounded-full items-center py-4 bg-neutral-950"
                 onPress={handleSubmit}
                 activeOpacity={0.8}
+                disabled={loading}
               >
                 <Text className="text-white text-base font-semibold">
-                  Submit
+                  {loading ? "Submitting..." : "Submit"}
                 </Text>
               </TouchableOpacity>
             </LinearGradient>

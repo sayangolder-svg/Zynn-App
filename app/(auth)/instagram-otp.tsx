@@ -1,8 +1,10 @@
 import MaskedView from "@react-native-masked-view/masked-view";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -21,6 +23,7 @@ export default function InstagramOtpScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [resendTimer, setResendTimer] = useState(30);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -45,19 +48,31 @@ export default function InstagramOtpScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = otp.join("");
-    if (code.length === OTP_LENGTH) {
-      // TODO: Navigate to main app after verification
-      // router.replace("/(tabs)");
+    if (code.length !== OTP_LENGTH || !username) return;
+    try {
+      setLoading(true);
+      await api.post("/auth/instagram/verify/", { username, otp: code });
+      router.replace("/(tabs)");
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendTimer === 0) {
-      setResendTimer(30);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      try {
+        if (!username) return;
+        await api.post("/auth/instagram/start/", { username });
+        setResendTimer(30);
+        setOtp(Array(OTP_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+      } catch (error) {
+        Alert.alert("Error", error instanceof Error ? error.message : "Failed to resend OTP");
+      }
     }
   };
 
@@ -74,7 +89,7 @@ export default function InstagramOtpScreen() {
           </Text>
 
           <Text className="text-neutral-400 text-sm text-center mb-8 leading-5">
-            Enter the 6 digit code sent to your{"\n"}Instagram DM
+            Enter the 6 digit code sent to your{"\n"}email
           </Text>
 
           {/* OTP Inputs */}
@@ -136,9 +151,10 @@ export default function InstagramOtpScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleVerify}
               activeOpacity={0.8}
+              disabled={loading}
             >
               <Text className="text-white text-base font-semibold">
-                Verify and continue
+                {loading ? "Verifying..." : "Verify and continue"}
               </Text>
             </TouchableOpacity>
           </LinearGradient>
