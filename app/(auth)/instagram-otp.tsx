@@ -180,4 +180,5 @@ export default function InstagramOtpScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+  
 }
