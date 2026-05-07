@@ -3,6 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "prestart": "node ./scripts/sync-shared-env.js",
+    "preweb": "node ./scripts/sync-shared-env.js",
+    "preandroid": "node ./scripts/sync-shared-env.js",
+    "preios": "node ./scripts/sync-shared-env.js",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -18,6 +22,7 @@
     "@react-navigation/material-top-tabs": "^7.4.16",
     "@react-navigation/native": "^7.1.8",
     "expo": "~54.0.33",
+    "expo-auth-session": "~6.2.0",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-font": "~14.0.11",

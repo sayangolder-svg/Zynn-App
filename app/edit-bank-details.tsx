@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -45,8 +46,9 @@ export default function EditBankDetailsScreen() {
   const [ifsc, setIfsc] = useState(params.ifsc ?? "");
   const [pan, setPan] = useState(params.pan ?? "");
   const [holderName, setHolderName] = useState(params.holderName ?? "");
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (
       !accountNumber ||
       !confirmAccountNumber ||
@@ -61,10 +63,23 @@ export default function EditBankDetailsScreen() {
       Alert.alert("Error", "Account numbers do not match.");
       return;
     }
-    // TODO: persist updated bank details
-    Alert.alert("Success", "Bank details updated successfully.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    try {
+      setLoading(true);
+      await api.put(`/bank-accounts/${params.id}/`, {
+        bank_name: params.bankName || ifsc.substring(0, 4).toUpperCase(),
+        account_number: accountNumber,
+        ifsc: ifsc.toUpperCase(),
+        pan: pan.toUpperCase(),
+        holder_name: holderName.toUpperCase(),
+      });
+      Alert.alert("Success", "Bank details updated successfully.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to update bank details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -168,8 +183,11 @@ export default function EditBankDetailsScreen() {
               className="rounded-full items-center py-4 bg-neutral-950"
               onPress={handleSave}
               activeOpacity={0.8}
+              disabled={loading}
             >
-              <Text className="text-white text-base font-semibold">Save</Text>
+              <Text className="text-white text-base font-semibold">
+                {loading ? "Saving..." : "Save"}
+              </Text>
             </TouchableOpacity>
           </LinearGradient>
 

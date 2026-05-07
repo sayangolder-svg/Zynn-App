@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -26,13 +28,22 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 export default function ChangePhoneScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = () => {
-    if (phone.trim().length > 0) {
+  const handleSendOtp = async () => {
+    const cleanPhone = phone.trim();
+    if (!cleanPhone) return;
+    try {
+      setLoading(true);
+      await api.post("/profile/change-phone/start/", { phone: cleanPhone });
       router.push({
         pathname: "/change-phone-otp" as any,
-        params: { phone: phone.trim() },
+        params: { phone: cleanPhone },
       });
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,9 +97,10 @@ export default function ChangePhoneScreen() {
                 className="rounded-full items-center py-4 bg-neutral-950"
                 onPress={handleSendOtp}
                 activeOpacity={0.8}
+                disabled={loading}
               >
                 <Text className="text-white text-base font-semibold">
-                  Send OTP
+                  {loading ? "Sending..." : "Send OTP"}
                 </Text>
               </TouchableOpacity>
             </LinearGradient>

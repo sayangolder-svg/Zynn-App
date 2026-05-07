@@ -1,5 +1,6 @@
 import SlideToActivate from "@/components/slide-to-activate";
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -7,6 +8,7 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+  Linking,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -31,35 +33,48 @@ interface DetectedProduct {
   name: string;
   store: string;
   price: string;
+  product_link?: string;
   image: any;
 }
 
-/* ── mock data ── */
-const MOCK_REEL: ReelPreview = {
-  title: "GRWM: Dewy Base",
-  handle: "@zzynn.ai | payra.maina",
-  thumbnail: null,
-};
-
-const MOCK_PRODUCTS: DetectedProduct[] = [
-  {
-    id: "1",
-    name: "Maybelline Fit Me Dewy+S...",
-    store: "Nykaa | payra.maina",
-    price: "₹ 589",
-    image: null,
-  },
-];
+/* ── api response ── */
+interface ReelProcessApiResponse {
+  id: number;
+  title: string;
+  handle: string;
+  cart_id?: string;
+  prices_pending?: boolean;
+  warning?: string;
+  ingestion_status?: string;
+  products: Array<{
+    name: string;
+    store: string;
+    price: string | number;
+    product_link: string;
+    image_url?: string;
+  }>;
+}
 
 /* ── sub-components ── */
 
 function ProductRow({
   product,
   onRemove,
+  pricesPending,
 }: {
   product: DetectedProduct;
   onRemove: () => void;
+  pricesPending?: boolean;
 }) {
+  const numericPrice = Number(product.price.replace(/[^\d.]/g, ""));
+  const isPendingPrice = pricesPending && (!Number.isFinite(numericPrice) || numericPrice <= 0);
+
+  const handleCopyLink = async () => {
+    if (!product.product_link) return;
+    await Clipboard.setStringAsync(product.product_link);
+    Alert.alert("Copied", "Buy link copied to clipboard.");
+  };
+
   return (
     <View className="bg-neutral-900 rounded-2xl p-4 flex-row items-center mb-3">
       {/* Thumbnail */}
@@ -88,7 +103,30 @@ function ProductRow({
         <Text className="text-neutral-500 text-xs mb-1" numberOfLines={1}>
           {product.store}
         </Text>
-        <Text className="text-white text-sm font-bold">{product.price}</Text>
+        {isPendingPrice ? (
+          <View className="mt-1 flex-row items-center">
+            <ActivityIndicator size="small" color="#FB812F" />
+            <Text className="text-amber-300 text-xs ml-2">Updating best price...</Text>
+          </View>
+        ) : (
+          <Text className="text-white text-sm font-bold">{product.price}</Text>
+        )}
+        {product.product_link ? (
+          <View className="mt-2 flex-row items-center gap-2">
+            <TouchableOpacity
+              className="self-start px-3 py-1.5 rounded-full bg-amber-500/20"
+              onPress={() => Linking.openURL(product.product_link || "")}
+            >
+              <Text className="text-amber-400 text-xs font-semibold">Open Buy Link</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="self-start px-3 py-1.5 rounded-full bg-neutral-700/70"
+              onPress={handleCopyLink}
+            >
+              <Text className="text-neutral-100 text-xs font-semibold">Copy Link</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
 
       {/* Delete */}
@@ -282,16 +320,77 @@ function AddProductLinkSection({
 export default function AddReelScreen() {
   const router = useRouter();
   const [reelLink, setReelLink] = useState("");
+  const [inlineError, setInlineError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [reelPreview, setReelPreview] = useState<ReelPreview | null>(null);
   const [products, setProducts] = useState<DetectedProduct[]>([]);
+  const [reelId, setReelId] = useState<number | null>(null);
+  const [ingestionStatus, setIngestionStatus] = useState<string>("");
+  const [ingestionWarning, setIngestionWarning] = useState<string>("");
+  const [cartId, setCartId] = useState<string | null>(null);
+  const [pricesPending, setPricesPending] = useState(false);
+  const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const extractSharedUrl = (text: string) => {
+    const match = text.match(/https?:\/\/[^\s]+/i);
+    return (match?.[0] || text).trim().replace(/[),\].}"']+$/, "");
+  };
+
+  const pollCartForUpdates = async (cid: string) => {
+    try {
+      console.log(`🔄 [add-reel] Polling cart: ${cid}`);
+      
+      const data = await api.get<{
+        cart_id: string;
+        products: Array<{
+          id: string;
+          name: string;
+          store: string;
+          price: number;
+          product_link: string;
+          image_url?: string;
+        }>;
+        price_count: number;
+        prices_pending: boolean;
+      }>(`/cart/${cid}/products`);
+
+      console.log(`   ✅ Poll Response: ${data.products?.length} products, ${data.price_count} with prices`);
+      
+      // Update products with latest prices and images
+      setProducts(
+        (data.products || []).map((p) => ({
+          id: p.id || "unknown",
+          name: p.name || "Detected Product",
+          store: p.store || "Direct",
+          price: `Rs ${p.price ?? 0}`,
+          product_link: p.product_link || "",
+          image: p.image_url ? { uri: p.image_url } : null,
+        })),
+      );
+
+      // If prices are no longer pending, stop polling
+      if (!data.prices_pending) {
+        console.log(`   ✅ All prices loaded - stopping poll`);
+        setPricesPending(false);
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+      }
+    } catch (error) {
+      console.warn("❌ Error polling cart updates:", error);
+      // Continue polling even if this request fails
+    }
+  };
 
   const handlePaste = async () => {
     try {
       const text = await Clipboard.getStringAsync();
       if (text) {
-        setReelLink(text);
-        fetchReelData(text);
+        const clean = extractSharedUrl(text);
+        setReelLink(clean);
+        fetchReelData(clean);
       }
     } catch {
       /* clipboard not available */
@@ -300,20 +399,93 @@ export default function AddReelScreen() {
 
   const handleLinkSubmit = () => {
     if (reelLink.trim()) {
-      fetchReelData(reelLink.trim());
+      const clean = extractSharedUrl(reelLink.trim());
+      setReelLink(clean);
+      fetchReelData(clean);
     }
   };
 
-  const fetchReelData = (url: string) => {
+  const fetchReelData = async (url: string) => {
     Keyboard.dismiss();
     setIsLoading(true);
-
-    // Simulate API fetch
-    setTimeout(() => {
-      setReelPreview(MOCK_REEL);
-      setProducts([...MOCK_PRODUCTS]);
+    try {
+      const data = await api.post<ReelProcessApiResponse>("/app/reels/process/", {
+        reel_link: url,
+      });
+      setInlineError("");
+      const safeTitle =
+        (data.title || "").trim() && (data.title || "").trim().toLowerCase() !== "untitled reel"
+          ? (data.title || "").trim()
+          : "Instagram Reel";
+      setReelPreview({
+        title: safeTitle,
+        handle: data.handle || "@zynn.creator",
+        thumbnail: null,
+      });
+      setReelId(data.id ?? null);
+      setCartId(data.cart_id ?? null);
+      setIngestionStatus(data.ingestion_status || "");
+      setIngestionWarning(data.warning || "");
+      
+      const hasPricesPending = data.prices_pending ?? false;
+      const responseCartId = data.cart_id;
+      
+      console.log("🔌 [add-reel] Reel Response Received:");
+      console.log(`   cart_id: ${responseCartId}`);
+      console.log(`   prices_pending: ${hasPricesPending}`);
+      console.log(`   product_count: ${data.products?.length}`);
+      
+      setPricesPending(hasPricesPending);
+      
+      setProducts(
+        (data.products || []).map((p, idx) => ({
+          id: String(idx + 1),
+          name: p.name || "Detected Product",
+          store: p.store || "Direct",
+          price: `Rs ${p.price ?? 0}`,
+          product_link: p.product_link || "",
+          image: p.image_url ? { uri: p.image_url } : null,
+        })),
+      );
+      
+      // If prices are pending and we have a cart_id, start polling for updates
+      if (hasPricesPending && responseCartId) {
+        console.log(`🔄 [add-reel] Starting polling for cart: ${responseCartId}`);
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+        pollCartForUpdates(responseCartId);
+        // Poll every 3 seconds for updated prices/images
+        pollIntervalRef.current = setInterval(() => {
+          pollCartForUpdates(responseCartId);
+        }, 3000);
+      } else {
+        console.log(`⚠️ [add-reel] Polling skipped - hasPricesPending=${hasPricesPending}, cartId=${responseCartId}`);
+      }
+      
+      if (data.warning) {
+        Alert.alert("Heads up", data.warning);
+      }
+    } catch (error) {
+      const maybeError = error as { message?: string; status?: number } | null;
+      const message =
+        (typeof maybeError?.message === "string" && maybeError.message) ||
+        "Failed to fetch reel details";
+      setInlineError(message);
+      Alert.alert(
+        "Error",
+        message,
+      );
+      setReelPreview(null);
+      setProducts([]);
+      setReelId(null);
+      setCartId(null);
+      setIngestionStatus("");
+      setIngestionWarning("");
+      setPricesPending(false);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const removeProduct = (id: string) => {
@@ -324,11 +496,37 @@ export default function AddReelScreen() {
     setProducts((prev) => [...prev, product]);
   };
 
-  const handleActivate = () => {
-    Alert.alert("Campaign Activated!", "Your reel campaign is now live.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+  const handleActivate = async () => {
+    if (!reelPreview || reelId == null) return;
+    try {
+      setActivating(true);
+      // Clear polling interval before leaving
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      await api.post(`/reels/${reelId}/activate/`);
+      Alert.alert("Campaign Activated!", "Your reel campaign is now live.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to activate campaign",
+      );
+    } finally {
+      setActivating(false);
+    }
   };
+
+  React.useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
@@ -372,7 +570,10 @@ export default function AddReelScreen() {
                     placeholder="Paste Instagram reel link..."
                     placeholderTextColor="#555"
                     value={reelLink}
-                    onChangeText={setReelLink}
+                    onChangeText={(text) => {
+                      setReelLink(text);
+                      if (inlineError) setInlineError("");
+                    }}
                     onSubmitEditing={handleLinkSubmit}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -395,6 +596,12 @@ export default function AddReelScreen() {
                 <Text className="text-neutral-600 text-xs mt-2 ml-1">
                   Example: https://instagram.com/reel/...
                 </Text>
+
+                {inlineError ? (
+                  <View className="mt-3 rounded-xl border border-red-500/40 bg-red-900/20 px-3 py-2">
+                    <Text className="text-red-300 text-xs font-medium">{inlineError}</Text>
+                  </View>
+                ) : null}
 
                 {/* Loading indicator */}
                 {isLoading && (
@@ -451,6 +658,18 @@ export default function AddReelScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {(ingestionWarning || ingestionStatus === "no_products") && (
+                  <View className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                    <Text className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">
+                      Detection note
+                    </Text>
+                    <Text className="text-amber-50 text-sm leading-5">
+                      {ingestionWarning ||
+                        "No products were detected by the analysis pipeline. Add product links manually if needed."}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -461,12 +680,21 @@ export default function AddReelScreen() {
               <Text className="text-neutral-500 text-xs font-semibold uppercase tracking-wider mb-3">
                 Detected products
               </Text>
+              {pricesPending && (
+                <View className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex-row items-center">
+                  <ActivityIndicator size="small" color="#FB812F" />
+                  <Text className="text-amber-100 text-xs ml-2">
+                    Fetching updated prices...
+                  </Text>
+                </View>
+              )}
 
               {products.map((product) => (
                 <ProductRow
                   key={product.id}
                   product={product}
                   onRemove={() => removeProduct(product.id)}
+                  pricesPending={pricesPending}
                 />
               ))}
             </View>
@@ -483,7 +711,7 @@ export default function AddReelScreen() {
         {/* ── Slide to activate (pinned at bottom) ── */}
         {reelPreview && (
           <View className="px-5 pb-6">
-            <SlideToActivate onActivate={handleActivate} />
+            <SlideToActivate onActivate={activating ? () => {} : handleActivate} />
           </View>
         )}
       </KeyboardAvoidingView>

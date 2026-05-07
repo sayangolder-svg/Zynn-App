@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert } from "react-native";
+import { Platform } from "react-native";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,23 +20,80 @@ const GRADIENT_COLORS = [
 const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 interface IGAccount {
-  id: string;
-  name: string;
-  email: string;
-  initials: string;
+  id: number;
+  username: string;
+  is_verified: boolean;
 }
-
-const MOCK_ACCOUNTS: IGAccount[] = [
-  {
-    id: "1",
-    name: "HELLO XYZ",
-    email: "xyz@gmail.com",
-    initials: "XY",
-  },
-];
 
 export default function InstagramAccountsScreen() {
   const router = useRouter();
+  const [accounts, setAccounts] = useState<IGAccount[]>([]);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  const loadAccounts = useCallback(async () => {
+    try {
+      const data = await api.get<IGAccount[]>("/instagram-accounts/");
+      setAccounts(data);
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to load accounts");
+    }
+  }, []);
+
+  const handleDeleteAccount = (account: IGAccount) => {
+    const message = `Are you sure you want to remove @${account.username}? This will revoke verification for this account.`;
+
+    if (Platform.OS !== "web") {
+      Alert.alert("Remove Account", message, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(account.id);
+            try {
+              console.log(`[DEBUG] Deleting account ${account.id}`);
+              const response = await api.delete(`/instagram-accounts/${account.id}/`);
+              console.log(`[DEBUG] Delete response:`, response);
+              setAccounts((current) => current.filter((a) => a.id !== account.id));
+              Alert.alert("Success", `@${account.username} has been removed.`);
+            } catch (error) {
+              console.error(`[DEBUG] Delete error:`, error);
+              Alert.alert("Error", error instanceof Error ? error.message : "Failed to remove account");
+            } finally {
+              setDeleting(null);
+            }
+          },
+        },
+      ]);
+      return;
+    }
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    void (async () => {
+      setDeleting(account.id);
+      try {
+        console.log(`[DEBUG] Deleting account ${account.id}`);
+        const response = await api.delete(`/instagram-accounts/${account.id}/`);
+        console.log(`[DEBUG] Delete response:`, response);
+        setAccounts((current) => current.filter((a) => a.id !== account.id));
+        window.alert(`@${account.username} has been removed.`);
+      } catch (error) {
+        console.error(`[DEBUG] Delete error:`, error);
+        window.alert(error instanceof Error ? error.message : "Failed to remove account");
+      } finally {
+        setDeleting(null);
+      }
+    })();
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadAccounts();
+    }, [loadAccounts]),
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
@@ -52,24 +113,38 @@ export default function InstagramAccountsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Account Cards */}
-          {MOCK_ACCOUNTS.map((account) => (
+          {accounts.map((account) => (
             <View
               key={account.id}
-              className="bg-neutral-900 rounded-2xl flex-row items-center px-4 py-4 mb-3"
+              className="bg-neutral-900 rounded-2xl flex-row items-center justify-between px-4 py-4 mb-3"
             >
-              <View className="w-12 h-12 rounded-full bg-neutral-600 items-center justify-center mr-3">
-                <Text className="text-white text-lg font-bold">
-                  {account.initials}
-                </Text>
+              <View className="flex-row items-center flex-1">
+                <View className="w-12 h-12 rounded-full bg-neutral-600 items-center justify-center mr-3">
+                  <Text className="text-white text-lg font-bold">
+                    {account.username.slice(0, 2).toUpperCase()}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-white text-sm font-bold">
+                    @{account.username}
+                  </Text>
+                  <Text className="text-neutral-500 text-xs mt-0.5">
+                    {account.is_verified ? "Verified" : "Pending verification"}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text className="text-white text-sm font-bold">
-                  {account.name}
-                </Text>
-                <Text className="text-neutral-500 text-xs mt-0.5">
-                  {account.email}
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => handleDeleteAccount(account)}
+                disabled={deleting === account.id}
+                activeOpacity={0.6}
+                className="p-2 -mr-2"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={22}
+                  color={deleting === account.id ? "#999" : "#ef4444"}
+                />
+              </TouchableOpacity>
             </View>
           ))}
         </ScrollView>

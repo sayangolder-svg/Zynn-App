@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -32,6 +33,7 @@ export default function ChangePhoneOtpScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [resendTimer, setResendTimer] = useState(30);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -58,19 +60,35 @@ export default function ChangePhoneOtpScreen() {
 
   const handleSubmit = () => {
     const code = otp.join("");
-    if (code.length === OTP_LENGTH) {
-      // TODO: verify OTP and update phone number
-      Alert.alert("Success", "Phone number changed successfully.", [
-        { text: "OK", onPress: () => router.dismissAll() },
-      ]);
-    }
+    if (code.length !== OTP_LENGTH || !phone) return;
+    setLoading(true);
+    api
+      .post("/profile/change-phone/verify/", { phone, otp: code })
+      .then(() => {
+        Alert.alert("Success", "Phone number changed successfully.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      })
+      .catch((error: unknown) => {
+        Alert.alert(
+          "Error",
+          error instanceof Error ? error.message : "Failed to verify OTP",
+        );
+      })
+      .finally(() => setLoading(false));
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendTimer === 0) {
-      setResendTimer(30);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      try {
+        if (!phone) return;
+        await api.post("/profile/change-phone/start/", { phone });
+        setResendTimer(30);
+        setOtp(Array(OTP_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+      } catch (error) {
+        Alert.alert("Error", error instanceof Error ? error.message : "Failed to resend OTP");
+      }
     }
   };
 
@@ -150,9 +168,10 @@ export default function ChangePhoneOtpScreen() {
                 className="rounded-full items-center py-4 bg-neutral-950"
                 onPress={handleSubmit}
                 activeOpacity={0.8}
+                disabled={loading}
               >
                 <Text className="text-white text-base font-semibold">
-                  Submit OTP
+                  {loading ? "Submitting..." : "Submit OTP"}
                 </Text>
               </TouchableOpacity>
             </LinearGradient>

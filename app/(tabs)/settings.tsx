@@ -1,5 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { api } from "@/lib/api";
+import { clearAuthToken, getAuthToken } from "@/lib/session";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Platform } from "react-native";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,6 +16,20 @@ interface SettingsItem {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const [name, setName] = useState("HELLO XYZ");
+  const [email, setEmail] = useState("xyz@gmail.com");
+
+  useFocusEffect(
+    useCallback(() => {
+      api
+        .get<{ name: string; email: string }>("/profile/")
+        .then((data) => {
+          setName(data.name || "HELLO XYZ");
+          setEmail(data.email || "No email");
+        })
+        .catch(() => {});
+    }, []),
+  );
 
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -19,15 +37,26 @@ export default function SettingsScreen() {
       {
         text: "Log out",
         style: "destructive",
-        onPress: () => {
-          // TODO: clear session & navigate to auth
+        onPress: async () => {
+          const token = getAuthToken();
+          clearAuthToken();
+
+          if (Platform.OS === "web" && typeof window !== "undefined") {
+            window.location.assign("/");
+          } else {
+            router.replace("/(auth)/landing" as any);
+          }
+
+          if (token) {
+            void api
+              .post(`/auth/logout/?token=${encodeURIComponent(token)}`, undefined, false)
+              .catch(() => {
+                // Ignore server-side logout failures; local logout is already complete.
+              });
+          }
         },
       },
     ]);
-  };
-
-  const handleDeleteAccount = () => {
-    router.push("/delete-account" as any);
   };
 
   const items: SettingsItem[] = [
@@ -93,10 +122,12 @@ export default function SettingsScreen() {
         {/* Profile Card */}
         <View className="bg-neutral-900 rounded-2xl items-center py-6 mt-3">
           <View className="w-20 h-20 rounded-full bg-neutral-600 items-center justify-center mb-3">
-            <Text className="text-white text-2xl font-bold">XY</Text>
+            <Text className="text-white text-2xl font-bold">
+              {name.slice(0, 2).toUpperCase()}
+            </Text>
           </View>
-          <Text className="text-white text-base font-bold">HELLO XYZ</Text>
-          <Text className="text-neutral-500 text-sm mt-0.5">xyz@gmail.com</Text>
+          <Text className="text-white text-base font-bold">{name}</Text>
+          <Text className="text-neutral-500 text-sm mt-0.5">{email}</Text>
         </View>
 
         {/* Menu Items */}

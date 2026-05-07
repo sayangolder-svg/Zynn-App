@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/lib/api";
+import { clearAuthToken } from "@/lib/session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -27,6 +29,7 @@ export default function DeleteAccountScreen() {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherReason, setOtherReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const canDelete = selectedReason && confirmText === "DELETE";
 
@@ -42,13 +45,29 @@ export default function DeleteAccountScreen() {
           text: "Delete Forever",
           style: "destructive",
           onPress: () => {
-            // TODO: delete account API call
-            Alert.alert("Account Deleted", "Your account has been deleted.", [
-              {
-                text: "OK",
-                onPress: () => router.replace("/(auth)/landing" as any),
-              },
-            ]);
+            setLoading(true);
+            api
+              .post("/delete-account/", {
+                reason: selectedReason,
+                other_reason: otherReason,
+                confirm_text: confirmText,
+              })
+              .then(() => {
+                clearAuthToken();
+                Alert.alert("Account Deleted", "Your account has been deleted.", [
+                  {
+                    text: "OK",
+                    onPress: () => router.replace("/(auth)/landing" as any),
+                  },
+                ]);
+              })
+              .catch((error: unknown) => {
+                Alert.alert(
+                  "Error",
+                  error instanceof Error ? error.message : "Failed to delete account",
+                );
+              })
+              .finally(() => setLoading(false));
           },
         },
       ],
@@ -169,9 +188,10 @@ export default function DeleteAccountScreen() {
                 className="rounded-full items-center py-4 bg-red-600"
                 activeOpacity={0.7}
                 onPress={handleDelete}
+                disabled={loading}
               >
                 <Text className="text-white text-base font-semibold">
-                  Delete My Account
+                  {loading ? "Deleting..." : "Delete My Account"}
                 </Text>
               </TouchableOpacity>
             ) : (
