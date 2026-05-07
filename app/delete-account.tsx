@@ -124,7 +124,7 @@ export default function DeleteAccountScreen() {
 
             {/* Reason Selection */}
             <Text className="text-neutral-400 text-sm mt-6 mb-3">
-              Please tell us why you're leaving
+              Please tell us why you&apos;re leaving
             </Text>
             {REASONS.map((reason) => (
               <TouchableOpacity

@@ -1,8 +1,10 @@
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
+import { getAuthToken } from "@/lib/session";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import * as WebBrowser from "expo-web-browser";
 import {
     Alert,
     Image,
@@ -15,17 +17,64 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+WebBrowser.maybeCompleteAuthSession();
+
+const FLASK_API_BASE_URL = process.env.EXPO_PUBLIC_FLASK_API_BASE_URL || "http://127.0.0.1:5000/api";
+const INSTAGRAM_REDIRECT_URI =
+  process.env.EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI ||
+  `${FLASK_API_BASE_URL}/auth/instagram/oauth-exchange/`;
+const INSTAGRAM_LOGIN_SCOPES = process.env.EXPO_PUBLIC_INSTAGRAM_LOGIN_SCOPES || "instagram_business_basic";
+
+async function postFlaskJson<T>(path: string, body: unknown): Promise<T> {
+  const token = getAuthToken();
+  const requestUrl =
+    Platform.OS === "web" && token
+      ? `${FLASK_API_BASE_URL}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
+      : `${FLASK_API_BASE_URL}${path}`;
+
+  const response = await fetch(requestUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(Platform.OS !== "web" && token ? { Authorization: `Token ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.detail || data?.message || text || "Instagram connect failed";
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
 export default function InstagramScreen() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [oauthStatus, setOauthStatus] = useState("");
 
   const handleContinue = async () => {
     const cleanUsername = username.trim().toLowerCase();
     if (!cleanUsername) return;
     try {
       setLoading(true);
-      await api.post("/auth/instagram/start/", { username: cleanUsername });
+      const response = await api.post<{ otp_debug?: string; email?: string }>("/auth/instagram/start/", {
+        username: cleanUsername,
+      });
+      if (response?.otp_debug) {
+        Alert.alert("Dev OTP", `Code sent to ${response.email || "your email"}: ${response.otp_debug}`);
+      }
       router.push({
         pathname: "/instagram-otp",
         params: { username: cleanUsername },
@@ -34,6 +83,50 @@ export default function InstagramScreen() {
       Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOAuthConnect = async () => {
+    setOauthStatus("Starting Instagram login...");
+    setOauthLoading(true);
+    try {
+      const CLIENT_ID = "1110909067751504";
+      const redirectUri = INSTAGRAM_REDIRECT_URI;
+      const token = getAuthToken();
+      const stateParam = token ? `&state=${encodeURIComponent(token)}` : "";
+      const authUrl =
+        `https://www.instagram.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+          redirectUri,
+        )}&scope=${encodeURIComponent(INSTAGRAM_LOGIN_SCOPES)}&response_type=code${stateParam}`;
+
+      console.log("[InstagramOAuth] opening auth session", { redirectUri, authUrl });
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      console.log("[InstagramOAuth] result:", result);
+      setOauthStatus("Instagram login response received.");
+
+      if (result.type === "success" && result.url) {
+        const callbackUrl = new URL(result.url);
+        const code = callbackUrl.searchParams.get("code");
+        const error = callbackUrl.searchParams.get("error");
+        const errorDescription = callbackUrl.searchParams.get("error_description");
+        if (error) {
+          throw new Error(errorDescription || error);
+        }
+        if (!code) {
+          throw new Error("Instagram did not return an authorization code.");
+        }
+        const resp = await postFlaskJson<any>("/auth/instagram/oauth-exchange/", {
+          code,
+          redirect_uri: redirectUri,
+        });
+        Alert.alert("Connected", `@${resp.account.username} connected.`);
+        router.replace("/(auth)/landing");
+      }
+    } catch (error) {
+      setOauthStatus(error instanceof Error ? error.message : "Instagram connect failed");
+      Alert.alert("Error", error instanceof Error ? error.message : "Instagram connect failed");
+    } finally {
+      setOauthLoading(false);
     }
   };
 
@@ -55,6 +148,51 @@ export default function InstagramScreen() {
               Verify via Instagram
             </Text>
 
+            {Platform.OS === "web" ? (
+              <button
+                type="button"
+                onClick={() => void handleOAuthConnect()}
+                disabled={oauthLoading}
+                style={{
+                  width: "100%",
+                  borderRadius: 9999,
+                  padding: "16px 20px",
+                  background: "#fff",
+                  color: "#000",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  border: "none",
+                  cursor: oauthLoading ? "not-allowed" : "pointer",
+                  marginBottom: 16,
+                }}
+              >
+                {oauthLoading ? "Opening Instagram..." : "Login with Instagram"}
+              </button>
+            ) : (
+              <TouchableOpacity
+                className="rounded-full items-center py-4 bg-white mb-4"
+                onPress={handleOAuthConnect}
+                activeOpacity={0.85}
+                disabled={oauthLoading}
+              >
+                <Text className="text-black text-base font-semibold">
+                  {oauthLoading ? "Opening Instagram..." : "Login with Instagram"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {oauthStatus ? (
+              <Text className="text-neutral-400 text-xs text-center mb-4">
+                {oauthStatus}
+              </Text>
+            ) : null}
+
+            <View className="flex-row items-center mb-4">
+              <View className="flex-1 h-px bg-neutral-700" />
+              <Text className="text-neutral-500 text-xs mx-3">or use OTP</Text>
+              <View className="flex-1 h-px bg-neutral-700" />
+            </View>
+
             <TextInput
               className="bg-neutral-800 rounded-xl px-4 py-3.5 text-white text-base mb-3"
               placeholder="Enter instagram username"
@@ -66,13 +204,13 @@ export default function InstagramScreen() {
             />
 
             <Text className="text-neutral-500 text-xs text-center">
-              We'll send a 6 digit code to your email
+              We&apos;ll send a 6 digit code to your email
             </Text>
           </View>
 
           {/* Privacy Note */}
           <Text className="text-neutral-500 text-xs text-center mb-8">
-            We don't ask for your password
+            We don&apos;t ask for your password
           </Text>
 
           {/* Continue Button */}

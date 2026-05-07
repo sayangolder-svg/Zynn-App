@@ -53,7 +53,7 @@ export default function EmailOtpScreen() {
     if (code.length !== OTP_LENGTH || !email) return;
     try {
       setLoading(true);
-      const response = await api.post<{ token: string }>(
+      const response = await api.post<{ token: string; needs_instagram_verification?: boolean }>(
         "/auth/email/verify/",
         {
           email,
@@ -61,8 +61,12 @@ export default function EmailOtpScreen() {
         },
         false,
       );
-      await setAuthToken(response.token);
-      router.push("/(auth)/instagram");
+      setAuthToken(response.token);
+      if (response.needs_instagram_verification) {
+        router.replace("/(auth)/instagram");
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (error) {
       Alert.alert(
         "Error",
@@ -123,7 +127,7 @@ export default function EmailOtpScreen() {
 
           <View className="flex-row justify-center mb-10">
             <Text className="text-neutral-500 text-sm">
-              Didn't receive code?{" "}
+              Didn&apos;t receive code?{" "}
             </Text>
             <TouchableOpacity onPress={handleResend}>
               <Text

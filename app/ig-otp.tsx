@@ -77,7 +77,10 @@ export default function IGOtpScreen() {
     if (resendTimer === 0) {
       try {
         if (!username) return;
-        await api.post("/auth/instagram/start/", { username });
+        const response = await api.post<{ otp_debug?: string; email?: string }>("/auth/instagram/start/", { username });
+        if (response?.otp_debug) {
+          Alert.alert("Dev OTP", `Code sent to ${response.email || "your email"}: ${response.otp_debug}`);
+        }
         setResendTimer(30);
         setOtp(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
@@ -128,7 +131,7 @@ export default function IGOtpScreen() {
           {/* Resend */}
           <View className="flex-row justify-center mb-10">
             <Text className="text-neutral-500 text-sm">
-              Didn't receive code?{" "}
+              Didn&apos;t receive code?{" "}
             </Text>
             <TouchableOpacity onPress={handleResend}>
               <Text
