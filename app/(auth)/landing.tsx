@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
 import { setAuthToken } from "@/lib/session";
+import * as AuthSession from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,19 +17,25 @@ export default function LandingScreen() {
   const router = useRouter();
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debugToast, setDebugToast] = useState("");
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: "zynnapp" });
   const [request, , promptAsync] = Google.useIdTokenAuthRequest({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "",
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined,
+    redirectUri,
   });
 
   useEffect(() => {
+    console.log("[GoogleSignIn] computed redirectUri:", redirectUri);
+    if (request?.redirectUri) {
+      console.log("[GoogleSignIn] request.redirectUri:", request.redirectUri);
+    }
     return () => {
       if (toastTimerRef.current) {
         clearTimeout(toastTimerRef.current);
       }
     };
-  }, []);
+  }, [redirectUri, request]);
 
   const showDebugToast = (message: string) => {
     console.log(`[GoogleSignIn] ${message}`);
@@ -42,6 +49,7 @@ export default function LandingScreen() {
   const handleGoogleSignIn = async () => {
     try {
       showDebugToast("Starting Google sign-in");
+      console.log("[GoogleSignIn] starting promptAsync with redirectUri:", redirectUri);
       const result = await promptAsync();
       console.log("[GoogleSignIn] promptAsync result:", result);
       if (result.type !== "success") return;

@@ -3,7 +3,15 @@ import { api } from "@/lib/api";
 import { clearAuthToken } from "@/lib/session";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SettingsItem {
@@ -17,6 +25,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [name, setName] = useState("HELLO XYZ");
   const [email, setEmail] = useState("xyz@gmail.com");
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,23 +41,22 @@ export default function SettingsScreen() {
   );
 
   const handleLogout = () => {
-    Alert.alert("Log out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await api.post("/auth/logout/");
-          } catch {
-            // ignore logout errors
-          } finally {
-            await clearAuthToken();
-            router.replace("/(auth)/landing" as any);
-          }
-        },
-      },
-    ]);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setShowLogoutModal(false);
+    try {
+      await api.post("/auth/logout/");
+    } catch {
+      // ignore logout errors
+    } finally {
+      await clearAuthToken();
+      setIsLoggingOut(false);
+      router.replace("/(auth)/landing" as any);
+    }
   };
 
   const items: SettingsItem[] = [
@@ -144,6 +153,51 @@ export default function SettingsScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showLogoutModal}
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View className="flex-1 bg-black/70 items-center justify-center px-6">
+          <Pressable
+            className="absolute inset-0"
+            onPress={() => setShowLogoutModal(false)}
+          />
+          <View className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950 px-5 pt-5 pb-4">
+            <Text className="text-white text-lg font-semibold">Log out</Text>
+            <Text className="text-neutral-400 text-sm mt-1.5">
+              You will need to sign in again to access your account.
+            </Text>
+            <View className="flex-row gap-3 mt-5">
+              <TouchableOpacity
+                className="flex-1 h-11 rounded-full border border-neutral-700 items-center justify-center"
+                onPress={() => setShowLogoutModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text className="text-white text-sm font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 h-11 rounded-full bg-white items-center justify-center"
+                onPress={confirmLogout}
+                activeOpacity={0.7}
+              >
+                <Text className="text-black text-sm font-semibold">Log out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" transparent visible={isLoggingOut}>
+        <View className="flex-1 bg-black/80 items-center justify-center">
+          <View className="items-center">
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text className="text-neutral-300 text-xs mt-3">Signing out…</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

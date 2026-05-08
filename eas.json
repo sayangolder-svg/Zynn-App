@@ -7,27 +7,42 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env":{
-        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
-        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
-        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+      "env": {
+        "EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI": "https://app.zynn.ai/api/auth/instagram/oauth-exchange/",
+        "EXPO_PUBLIC_BACKEND_BASE_URL": "https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_FLASK_API_BASE_URL": "https://zynn.ai/api",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "472855087897-m3vpuutsuo8vl7lkkvss3bu6u0m0t8n0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "472855087897-kkmkbfae3pf22fobsfctqutipnvc50md.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "472855087897-8o3bsidd0nmk1a2macsiqgj2g7h130u0.apps.googleusercontent.com"
       }
     },
     "preview": {
       "channel": "preview",
       "distribution": "internal",
       "env":{
-        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
-        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
-        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+        "EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI": "https://app.zynn.ai/api/auth/instagram/oauth-exchange/",
+        "EXPO_PUBLIC_BACKEND_BASE_URL": "https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_FLASK_API_BASE_URL": "https://zynn.ai/api",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "472855087897-m3vpuutsuo8vl7lkkvss3bu6u0m0t8n0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "472855087897-kkmkbfae3pf22fobsfctqutipnvc50md.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "472855087897-8o3bsidd0nmk1a2macsiqgj2g7h130u0.apps.googleusercontent.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env":{
-        "EXPO_PUBLIC_BACKEND_BASE_URL":"https://app.zynn.ai",
-        "EXPO_PUBLIC_API_BASE_URL":"https://app.zynn.ai/api",
-        "EXPO_PUBLIC_API_BASE_URL_WEB":"https://app.zynn.ai/api"
+        "EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI": "https://app.zynn.ai/api/auth/instagram/oauth-exchange/",
+        "EXPO_PUBLIC_BACKEND_BASE_URL": "https://app.zynn.ai",
+        "EXPO_PUBLIC_API_BASE_URL": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_API_BASE_URL_WEB": "https://app.zynn.ai/api",
+        "EXPO_PUBLIC_FLASK_API_BASE_URL": "https://zynn.ai/api",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "472855087897-m3vpuutsuo8vl7lkkvss3bu6u0m0t8n0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "472855087897-kkmkbfae3pf22fobsfctqutipnvc50md.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "472855087897-8o3bsidd0nmk1a2macsiqgj2g7h130u0.apps.googleusercontent.com"
       }
     }
   },

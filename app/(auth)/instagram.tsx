@@ -26,7 +26,7 @@ const INSTAGRAM_REDIRECT_URI =
 const INSTAGRAM_LOGIN_SCOPES = process.env.EXPO_PUBLIC_INSTAGRAM_LOGIN_SCOPES || "instagram_business_basic";
 
 async function postFlaskJson<T>(path: string, body: unknown): Promise<T> {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   const requestUrl =
     Platform.OS === "web" && token
       ? `${FLASK_API_BASE_URL}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
@@ -92,7 +92,7 @@ export default function InstagramScreen() {
     try {
       const CLIENT_ID = "1110909067751504";
       const redirectUri = INSTAGRAM_REDIRECT_URI;
-      const token = getAuthToken();
+      const token = await getAuthToken();
       const stateParam = token ? `&state=${encodeURIComponent(token)}` : "";
       const authUrl =
         `https://www.instagram.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
