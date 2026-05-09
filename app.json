@@ -12,7 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "ai.zynn.zynncreator",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.472855087897-8o3bsidd0nmk1a2macsiqgj2g7h130u0"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -33,6 +40,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
         {

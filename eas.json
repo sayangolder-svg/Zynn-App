@@ -7,6 +7,9 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
       "env": {
         "EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI": "https://app.zynn.ai/api/auth/instagram/oauth-exchange/",
         "EXPO_PUBLIC_BACKEND_BASE_URL": "https://app.zynn.ai",
