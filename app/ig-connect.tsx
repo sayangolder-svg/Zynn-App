@@ -198,6 +198,7 @@ export default function IGConnectScreen() {
               </Text>
             ) : null}
 
+            {/*
             <View className="flex-row items-center mb-4">
               <View className="flex-1 h-px bg-neutral-700" />
               <Text className="text-neutral-500 text-xs mx-3">or use OTP</Text>
@@ -217,6 +218,7 @@ export default function IGConnectScreen() {
             <Text className="text-neutral-500 text-xs text-center">
               We&apos;ll send a 6 digit code to your email
             </Text>
+            */}
           </View>
 
           {/* Privacy Note */}
@@ -225,6 +227,7 @@ export default function IGConnectScreen() {
           </Text>
 
           {/* Continue Button */}
+          {/*
           <LinearGradient
             colors={[...GRADIENT_COLORS]}
             locations={[...GRADIENT_LOCATIONS]}
@@ -243,6 +246,7 @@ export default function IGConnectScreen() {
               </Text>
             </TouchableOpacity>
           </LinearGradient>
+          */}
         </View>
 
         {/* Bottom Image with Transparent Top Fade */}

@@ -1,13 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import { Redirect, withLayoutContext } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { api } from "@/lib/api";
 import { clearAuthToken, getAuthToken } from "@/lib/session";
-
-const { Navigator } = createMaterialTopTabNavigator();
-const MaterialTopTabs = withLayoutContext(Navigator);
 
 function AnimatedTabIcon({
   focused,
@@ -101,15 +97,13 @@ export default function TabsLayout() {
   if (!isAllowed) return <Redirect href="/(auth)/landing" />;
 
   return (
-    <MaterialTopTabs
+    <Tabs
       screenOptions={{
-        swipeEnabled: false,
-        animationEnabled: true,
-        lazy: true,
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: "#000",
-          borderBottomColor: "#262626",
-          borderBottomWidth: 0.5,
+          borderTopColor: "#262626",
+          borderTopWidth: 0.5,
           elevation: 0,
           shadowOpacity: 0,
         },
@@ -120,20 +114,14 @@ export default function TabsLayout() {
           fontWeight: "500",
           textTransform: "none",
         },
-        tabBarIndicatorStyle: {
-          backgroundColor: "transparent",
-          height: 0,
-        },
         tabBarItemStyle: {
           flexDirection: "column",
           alignItems: "center",
           paddingVertical: 6,
         },
-        tabBarShowIcon: true,
       }}
-      tabBarPosition="bottom"
     >
-      <MaterialTopTabs.Screen
+      <Tabs.Screen
         name="index"
         options={{
           title: "Home",
@@ -153,7 +141,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <MaterialTopTabs.Screen
+      <Tabs.Screen
         name="reels"
         options={{
           title: "Add Reel",
@@ -173,7 +161,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <MaterialTopTabs.Screen
+      <Tabs.Screen
         name="earnings"
         options={{
           title: "Earnings",
@@ -193,7 +181,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <MaterialTopTabs.Screen
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
@@ -213,6 +201,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-    </MaterialTopTabs>
+    </Tabs>
   );
 }

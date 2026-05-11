@@ -145,7 +145,7 @@ export default function InstagramScreen() {
           {/* Instagram Card */}
           <View className="bg-neutral-900 rounded-2xl p-6 mb-4">
             <Text className="text-white text-xl font-bold text-center mb-5">
-              Verify via Instagram
+              Verify via Instag
             </Text>
 
             {Platform.OS === "web" ? (
@@ -187,6 +187,7 @@ export default function InstagramScreen() {
               </Text>
             ) : null}
 
+            {/*
             <View className="flex-row items-center mb-4">
               <View className="flex-1 h-px bg-neutral-700" />
               <Text className="text-neutral-500 text-xs mx-3">or use OTP</Text>
@@ -206,6 +207,7 @@ export default function InstagramScreen() {
             <Text className="text-neutral-500 text-xs text-center">
               We&apos;ll send a 6 digit code to your email
             </Text>
+            */}
           </View>
 
           {/* Privacy Note */}
@@ -214,6 +216,7 @@ export default function InstagramScreen() {
           </Text>
 
           {/* Continue Button */}
+          {/*
           <LinearGradient
             colors={[
               "#FB812F",
@@ -240,6 +243,7 @@ export default function InstagramScreen() {
               </Text>
             </TouchableOpacity>
           </LinearGradient>
+          */}
         </View>
 
         {/* Bottom Image with Transparent Top Fade */}
