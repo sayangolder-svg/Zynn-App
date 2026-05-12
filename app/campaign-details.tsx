@@ -2,11 +2,12 @@ import { useAlert } from "@/components/app-alert";
 import Skeleton from "@/components/skeleton";
 import StatCard from "@/components/stat-card";
 import { Ionicons } from "@expo/vector-icons";
+import { openAffiliateLink } from "@/lib/affiliate";
 import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Linking, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -231,7 +232,7 @@ export default function CampaignDetailsScreen() {
                     <View className="mt-2 flex-row items-center gap-2">
                       <TouchableOpacity
                         className="self-start px-3 py-1.5 rounded-full bg-amber-500/20"
-                        onPress={() => Linking.openURL(product.product_link)}
+                        onPress={() => void openAffiliateLink(product.product_link)}
                       >
                         <Text className="text-amber-400 text-xs font-semibold">Open Buy Link</Text>
                       </TouchableOpacity>

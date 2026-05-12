@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import SlideToActivate from "@/components/slide-to-activate";
 import { Ionicons } from "@expo/vector-icons";
+import { buildAffiliateLink, openAffiliateLink } from "@/lib/affiliate";
 import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,10 +9,10 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -61,10 +62,12 @@ function ProductRow({
   product,
   onRemove,
   pricesPending,
+  isCampaignActivated,
 }: {
   product: DetectedProduct;
   onRemove: () => void;
   pricesPending?: boolean;
+  isCampaignActivated?: boolean;
 }) {
   const { showAlert } = useAlert();
   const numericPrice = Number(product.price.replace(/[^\d.]/g, ""));
@@ -72,8 +75,20 @@ function ProductRow({
 
   const handleCopyLink = async () => {
     if (!product.product_link) return;
-    await Clipboard.setStringAsync(product.product_link);
-    showAlert("Copied", "Buy link copied to clipboard.");
+    const linkToCopy = isCampaignActivated
+      ? buildAffiliateLink(product.product_link)
+      : product.product_link;
+    await Clipboard.setStringAsync(linkToCopy);
+    showAlert("Copied", isCampaignActivated ? "Affiliate buy link copied." : "Buy link copied to clipboard.");
+  };
+
+  const handleOpenLink = async () => {
+    if (!product.product_link) return;
+    if (isCampaignActivated) {
+      await openAffiliateLink(product.product_link || "");
+      return;
+    }
+    await Linking.openURL(product.product_link || "");
   };
 
   return (
@@ -116,7 +131,7 @@ function ProductRow({
           <View className="mt-2 flex-row items-center gap-2">
             <TouchableOpacity
               className="self-start px-3 py-1.5 rounded-full bg-amber-500/20"
-              onPress={() => Linking.openURL(product.product_link || "")}
+              onPress={() => void handleOpenLink()}
             >
               <Text className="text-amber-400 text-xs font-semibold">Open Buy Link</Text>
             </TouchableOpacity>
@@ -324,6 +339,7 @@ export default function AddReelScreen() {
   const [reelId, setReelId] = useState<number | null>(null);
   const [cartId, setCartId] = useState<string | null>(null);
   const [pricesPending, setPricesPending] = useState(false);
+  const [isCampaignActivated, setIsCampaignActivated] = useState(false);
   const [ingestionStatus, setIngestionStatus] = useState<string>("");
   const [ingestionWarning, setIngestionWarning] = useState<string>("");
   const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -405,6 +421,7 @@ export default function AddReelScreen() {
       const data = await api.post<ReelProcessApiResponse>("/app/reels/process/", {
         reel_link: url,
       });
+      setIsCampaignActivated(false);
       setInlineError("");
       const safeTitle =
         (data.title || "").trim() && (data.title || "").trim().toLowerCase() !== "untitled reel"
@@ -496,6 +513,7 @@ export default function AddReelScreen() {
         pollIntervalRef.current = null;
       }
       await api.post(`/reels/${reelId}/activate/`);
+      setIsCampaignActivated(true);
       showAlert("Campaign Activated!", "Your reel campaign is now live.");
     } catch (error) {
       showAlert(
@@ -670,6 +688,7 @@ export default function AddReelScreen() {
                   product={product}
                   onRemove={() => removeProduct(product.id)}
                   pricesPending={pricesPending}
+                  isCampaignActivated={isCampaignActivated}
                 />
               ))}
             </View>
