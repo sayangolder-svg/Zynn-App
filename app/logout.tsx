@@ -7,18 +7,22 @@ export default function LogoutScreen() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = getAuthToken();
-    clearAuthToken();
+    const runLogout = async () => {
+      const token = await getAuthToken();
+      await clearAuthToken();
 
-    if (token) {
-      void api.post(`/auth/logout/?token=${encodeURIComponent(token)}`, undefined, false).catch(
-        () => {
-          // Ignore server-side logout failures; local logout is already complete.
-        },
-      );
-    }
+      if (token) {
+        void api.post(`/auth/logout/?token=${encodeURIComponent(token)}`, undefined, false).catch(
+          () => {
+            // Ignore server-side logout failures; local logout is already complete.
+          },
+        );
+      }
 
-    setReady(true);
+      setReady(true);
+    };
+
+    void runLogout();
   }, []);
 
   if (!ready) return null;
