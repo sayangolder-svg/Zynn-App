@@ -127,7 +127,7 @@ export default function InstagramScreen() {
         } else {
           Alert.alert("Connected", "Instagram account connected.");
         }
-        router.replace("/(auth)/landing");
+        router.replace("/(tabs)");
       }
     } catch (error) {
       setOauthStatus(error instanceof Error ? error.message : "Instagram connect failed");

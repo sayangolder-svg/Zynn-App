@@ -134,7 +134,7 @@ export default function IGConnectScreen() {
         } else {
           Alert.alert("Connected", "Instagram account connected.");
         }
-        router.replace("/(auth)/landing");
+        router.replace("/(tabs)");
       } else if (result.type === "dismiss" || result.type === "cancel") {
         // user cancelled
       }
