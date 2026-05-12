@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -16,6 +16,7 @@ interface ShoppableReel {
   shares: number;
   status: ReelStatus;
   productCount: number;
+  thumbnailUrl: string;
 }
 
 interface EarningsSummary {
@@ -43,9 +44,13 @@ function ReelCard({ reel, onPress }: { reel: ShoppableReel; onPress?: () => void
       className="bg-neutral-900 rounded-2xl p-4 flex-row items-center mb-3"
     >
       <View className="w-16 h-16 rounded-xl bg-neutral-700 overflow-hidden mr-4">
-        <View className="flex-1 bg-neutral-600 items-center justify-center">
-          <Ionicons name="image-outline" size={24} color="#666" />
-        </View>
+        {reel.thumbnailUrl ? (
+          <Image source={{ uri: reel.thumbnailUrl }} className="w-full h-full" resizeMode="cover" />
+        ) : (
+          <View className="flex-1 bg-neutral-600 items-center justify-center">
+            <Ionicons name="image-outline" size={24} color="#666" />
+          </View>
+        )}
       </View>
 
       <View className="flex-1">
@@ -96,6 +101,14 @@ export default function HomeScreen() {
             const productNames = rawProducts
               .map((p) => (typeof p === "object" && p ? String((p as Record<string, unknown>).name || "").trim() : ""))
               .filter(Boolean);
+            const thumbnailUrl =
+              rawProducts
+                .map((p) =>
+                  typeof p === "object" && p
+                    ? String((p as Record<string, unknown>).image_url || "").trim()
+                    : "",
+                )
+                .find(Boolean) || "";
             const rawTitle = String(item.title || "").trim();
             const rawDescription = String(item.description || "").trim();
             const titleIsGeneric = !rawTitle || rawTitle.toLowerCase() === "untitled reel";
@@ -115,6 +128,7 @@ export default function HomeScreen() {
               title: resolvedTitle,
               description: resolvedDescription,
               productCount: productNames.length,
+              thumbnailUrl,
             };
           })(),
           id: Number(item.id),

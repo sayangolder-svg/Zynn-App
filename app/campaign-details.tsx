@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Linking, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Linking, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -15,6 +15,7 @@ interface Product {
   store: string;
   price: string;
   product_link: string;
+  image_url?: string;
   affiliated_brands: string[];
 }
 
@@ -79,6 +80,10 @@ export default function CampaignDetailsScreen() {
   }
 
   const statusStyle = getStatusStyle(campaign.status);
+  const reelThumbnailUrl =
+    campaign.products
+      .map((p) => String(p.image_url || "").trim())
+      .find(Boolean) || "";
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
@@ -101,9 +106,13 @@ export default function CampaignDetailsScreen() {
           <View className="bg-neutral-900 rounded-2xl p-4 flex-row items-center justify-between">
             <View className="flex-row items-center flex-1">
               <View className="w-14 h-14 rounded-xl bg-neutral-700 overflow-hidden mr-4">
-                <View className="flex-1 bg-neutral-600 items-center justify-center">
-                  <Ionicons name="image-outline" size={22} color="#666" />
-                </View>
+                {reelThumbnailUrl ? (
+                  <Image source={{ uri: reelThumbnailUrl }} className="w-full h-full" resizeMode="cover" />
+                ) : (
+                  <View className="flex-1 bg-neutral-600 items-center justify-center">
+                    <Ionicons name="image-outline" size={22} color="#666" />
+                  </View>
+                )}
               </View>
               <View className="flex-1">
                 <View className="flex-row items-center mb-1 flex-wrap gap-2">
@@ -155,9 +164,13 @@ export default function CampaignDetailsScreen() {
             <View key={product.id} className="bg-neutral-900 rounded-2xl p-4 mb-3">
               <View className="flex-row items-center">
               <View className="w-14 h-14 rounded-xl bg-neutral-700 overflow-hidden mr-4">
-                <View className="flex-1 bg-neutral-600 items-center justify-center">
-                  <Ionicons name="cube-outline" size={22} color="#888" />
-                </View>
+                {product.image_url ? (
+                  <Image source={{ uri: product.image_url }} className="w-full h-full" resizeMode="cover" />
+                ) : (
+                  <View className="flex-1 bg-neutral-600 items-center justify-center">
+                    <Ionicons name="cube-outline" size={22} color="#888" />
+                  </View>
+                )}
               </View>
                 <View className="flex-1">
                   <Text className="text-white text-sm font-semibold mb-0.5" numberOfLines={1}>

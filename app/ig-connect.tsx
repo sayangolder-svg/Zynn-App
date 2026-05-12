@@ -17,6 +17,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+WebBrowser.maybeCompleteAuthSession();
+
 const GRADIENT_COLORS = [
   "#FB812F",
   "#FD963A",
@@ -31,6 +33,8 @@ const FLASK_API_BASE_URL = process.env.EXPO_PUBLIC_FLASK_API_BASE_URL || "http:/
 const INSTAGRAM_REDIRECT_URI =
   process.env.EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI ||
   `${FLASK_API_BASE_URL}/auth/instagram/oauth-exchange/`;
+const INSTAGRAM_APP_CALLBACK_URI =
+  process.env.EXPO_PUBLIC_INSTAGRAM_APP_CALLBACK_URI || "zynnapp://instagram-accounts";
 const INSTAGRAM_LOGIN_SCOPES = process.env.EXPO_PUBLIC_INSTAGRAM_LOGIN_SCOPES || "instagram_business_basic";
 
 async function postFlaskJson<T>(path: string, body: unknown): Promise<T> {
@@ -100,6 +104,7 @@ export default function IGConnectScreen() {
     try {
       const CLIENT_ID = "1110909067751504";
       const redirectUri = INSTAGRAM_REDIRECT_URI;
+      const callbackUri = Platform.OS === "web" ? redirectUri : INSTAGRAM_APP_CALLBACK_URI;
       const token = await getAuthToken();
       const stateParam = token ? `&state=${encodeURIComponent(token)}` : "";
       const authUrl =
@@ -107,24 +112,28 @@ export default function IGConnectScreen() {
           redirectUri,
         )}&scope=${encodeURIComponent(INSTAGRAM_LOGIN_SCOPES)}&response_type=code${stateParam}`;
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, callbackUri);
       setOauthStatus("Instagram login response received.");
       if (result.type === "success" && result.url) {
-        const callbackUrl = new URL(result.url);
-        const code = callbackUrl.searchParams.get("code");
-        const error = callbackUrl.searchParams.get("error");
-        const errorDescription = callbackUrl.searchParams.get("error_description");
-        if (error) {
-          throw new Error(errorDescription || error);
+        if (Platform.OS === "web") {
+          const callbackUrl = new URL(result.url);
+          const code = callbackUrl.searchParams.get("code");
+          const error = callbackUrl.searchParams.get("error");
+          const errorDescription = callbackUrl.searchParams.get("error_description");
+          if (error) {
+            throw new Error(errorDescription || error);
+          }
+          if (!code) {
+            throw new Error("Instagram did not return an authorization code.");
+          }
+          const resp = await postFlaskJson<any>("/auth/instagram/oauth-exchange/", {
+            code,
+            redirect_uri: redirectUri,
+          });
+          Alert.alert("Connected", `@${resp.account.username} connected.`);
+        } else {
+          Alert.alert("Connected", "Instagram account connected.");
         }
-        if (!code) {
-          throw new Error("Instagram did not return an authorization code.");
-        }
-        const resp = await postFlaskJson<any>("/auth/instagram/oauth-exchange/", {
-          code,
-          redirect_uri: redirectUri,
-        });
-        Alert.alert("Connected", `@${resp.account.username} connected.`);
         router.replace("/(auth)/landing");
       } else if (result.type === "dismiss" || result.type === "cancel") {
         // user cancelled
