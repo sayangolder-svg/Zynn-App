@@ -1,10 +1,11 @@
+import { useAlert } from "@/components/app-alert";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,13 +18,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EmailScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSendOTP = async () => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
-      Alert.alert("Invalid email", "Please enter a valid email address.");
+      showAlert("Invalid email", "Please enter a valid email address.");
       return;
     }
     try {
@@ -34,7 +36,7 @@ export default function EmailScreen() {
         params: { email: cleanEmail },
       });
     } catch (error) {
-      Alert.alert(
+      showAlert(
         "Error",
         error instanceof Error ? error.message : "Failed to send OTP",
       );
@@ -84,11 +86,12 @@ export default function EmailScreen() {
             style={{ borderRadius: 28, padding: 2 }}
           >
             <TouchableOpacity
-              className="rounded-full items-center py-4 bg-neutral-950"
+              className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
               onPress={handleSendOTP}
               activeOpacity={0.8}
               disabled={loading}
             >
+              {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
               <Text className="text-white text-base font-semibold">
                 {loading ? "Sending..." : "Send OTP"}
               </Text>

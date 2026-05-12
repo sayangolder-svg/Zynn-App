@@ -1,17 +1,18 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,6 +29,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function EditBankDetailsScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const params = useLocalSearchParams<{
     id: string;
     bankName: string;
@@ -56,11 +58,11 @@ export default function EditBankDetailsScreen() {
       !pan ||
       !holderName
     ) {
-      Alert.alert("Error", "Please fill in all fields.");
+      showAlert("Error", "Please fill in all fields.");
       return;
     }
     if (accountNumber !== confirmAccountNumber) {
-      Alert.alert("Error", "Account numbers do not match.");
+      showAlert("Error", "Account numbers do not match.");
       return;
     }
     try {
@@ -72,11 +74,14 @@ export default function EditBankDetailsScreen() {
         pan: pan.toUpperCase(),
         holder_name: holderName.toUpperCase(),
       });
-      Alert.alert("Success", "Bank details updated successfully.", [
+      showAlert("Success", "Bank details updated successfully.", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to update bank details");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to update bank details",
+      );
     } finally {
       setLoading(false);
     }
@@ -180,11 +185,12 @@ export default function EditBankDetailsScreen() {
             style={{ borderRadius: 28, padding: 2 }}
           >
             <TouchableOpacity
-              className="rounded-full items-center py-4 bg-neutral-950"
+              className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
               onPress={handleSave}
               activeOpacity={0.8}
               disabled={loading}
             >
+              {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
               <Text className="text-white text-base font-semibold">
                 {loading ? "Saving..." : "Save"}
               </Text>

@@ -1,3 +1,4 @@
+import { useAlert } from "@/components/app-alert";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
 import { setAuthToken } from "@/lib/session";
@@ -5,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +21,7 @@ const OTP_LENGTH = 6;
 
 export default function EmailOtpScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -68,7 +70,7 @@ export default function EmailOtpScreen() {
         router.replace("/(tabs)");
       }
     } catch (error) {
-      Alert.alert(
+      showAlert(
         "Error",
         error instanceof Error ? error.message : "Verification failed",
       );
@@ -86,7 +88,7 @@ export default function EmailOtpScreen() {
         setOtp(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       } catch (error) {
-        Alert.alert(
+        showAlert(
           "Error",
           error instanceof Error ? error.message : "Failed to resend OTP",
         );
@@ -157,11 +159,12 @@ export default function EmailOtpScreen() {
             style={{ borderRadius: 28, padding: 2 }}
           >
             <TouchableOpacity
-              className="rounded-full items-center py-4 bg-neutral-950"
+              className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
               onPress={handleVerify}
               activeOpacity={0.8}
               disabled={loading}
             >
+              {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
               <Text className="text-white text-base font-semibold">
                 {loading ? "Verifying..." : "Verify and continue"}
               </Text>

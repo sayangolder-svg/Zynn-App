@@ -1,10 +1,12 @@
+import { useAlert } from "@/components/app-alert";
+import Skeleton from "@/components/skeleton";
 import StatCard from "@/components/stat-card";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Image, Linking, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Image, Linking, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -43,8 +45,57 @@ function getStatusStyle(status: ReelStatus) {
   }
 }
 
+function CampaignSkeleton() {
+  return (
+    <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
+      <View className="flex-row items-center justify-between px-5 py-3">
+        <Skeleton className="w-9 h-9 rounded-full" />
+        <Skeleton className="w-40 h-4 rounded-md" />
+        <Skeleton className="w-10 h-10 rounded-full" />
+      </View>
+
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+        <View className="px-5 mt-2 mb-4">
+          <Skeleton className="w-16 h-3 rounded-md mb-3" />
+          <View className="bg-neutral-900 rounded-2xl p-4 flex-row items-center justify-between">
+            <Skeleton className="w-14 h-14 rounded-xl" />
+            <View className="flex-1 ml-4">
+              <Skeleton className="w-32 h-4 rounded-md" />
+              <Skeleton className="w-24 h-3 rounded-md mt-2" />
+            </View>
+            <Skeleton className="w-10 h-6 rounded-full" />
+          </View>
+        </View>
+
+        <View className="flex-row px-5 gap-3 mb-6">
+          <Skeleton className="flex-1 h-20 rounded-2xl" />
+          <Skeleton className="flex-1 h-20 rounded-2xl" />
+          <Skeleton className="flex-1 h-20 rounded-2xl" />
+        </View>
+
+        <View className="px-5">
+          <Skeleton className="w-36 h-3 rounded-md mb-3" />
+          {[0, 1, 2].map((idx) => (
+            <View key={idx} className="bg-neutral-900 rounded-2xl p-4 mb-3">
+              <View className="flex-row items-center">
+                <Skeleton className="w-14 h-14 rounded-xl" />
+                <View className="flex-1 ml-4">
+                  <Skeleton className="w-40 h-4 rounded-md" />
+                  <Skeleton className="w-28 h-3 rounded-md mt-2" />
+                  <Skeleton className="w-20 h-3 rounded-md mt-2" />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
 export default function CampaignDetailsScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const { reelId } = useLocalSearchParams<{ reelId: string }>();
   const [campaign, setCampaign] = useState<ReelDetails | null>(null);
 
@@ -72,11 +123,7 @@ export default function CampaignDetailsScreen() {
   };
 
   if (!campaign) {
-    return (
-      <SafeAreaView className="flex-1 bg-black items-center justify-center">
-        <Text className="text-white">Loading...</Text>
-      </SafeAreaView>
-    );
+    return <CampaignSkeleton />;
   }
 
   const statusStyle = getStatusStyle(campaign.status);
@@ -192,7 +239,7 @@ export default function CampaignDetailsScreen() {
                         className="self-start px-3 py-1.5 rounded-full bg-neutral-700/70"
                         onPress={async () => {
                           await Clipboard.setStringAsync(product.product_link);
-                          Alert.alert("Copied", "Buy link copied to clipboard.");
+                          showAlert("Copied", "Buy link copied to clipboard.");
                         }}
                       >
                         <Text className="text-neutral-100 text-xs font-semibold">Copy Link</Text>

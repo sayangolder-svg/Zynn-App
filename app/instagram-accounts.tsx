@@ -1,10 +1,10 @@
+import { useAlert } from "@/components/app-alert";
+import Skeleton from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert } from "react-native";
-import { Platform } from "react-native";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,23 +27,33 @@ interface IGAccount {
 
 export default function InstagramAccountsScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [accounts, setAccounts] = useState<IGAccount[]>([]);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const loadAccounts = useCallback(async () => {
+  const loadAccounts = useCallback(async (showSkeleton = accounts.length === 0) => {
     try {
+      if (showSkeleton) setIsLoading(true);
       const data = await api.get<IGAccount[]>("/instagram-accounts/");
       setAccounts(data);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to load accounts");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to load accounts",
+      );
+    } finally {
+      if (showSkeleton) setIsLoading(false);
     }
-  }, []);
+  }, [accounts.length, showAlert]);
 
   const handleDeleteAccount = (account: IGAccount) => {
     const message = `Are you sure you want to remove @${account.username}? This will revoke verification for this account.`;
 
-    if (Platform.OS !== "web") {
-      Alert.alert("Remove Account", message, [
+    showAlert(
+      "Remove Account",
+      message,
+      [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
@@ -55,38 +65,21 @@ export default function InstagramAccountsScreen() {
               const response = await api.delete(`/instagram-accounts/${account.id}/`);
               console.log(`[DEBUG] Delete response:`, response);
               setAccounts((current) => current.filter((a) => a.id !== account.id));
-              Alert.alert("Success", `@${account.username} has been removed.`);
+              showAlert("Success", `@${account.username} has been removed.`);
             } catch (error) {
               console.error(`[DEBUG] Delete error:`, error);
-              Alert.alert("Error", error instanceof Error ? error.message : "Failed to remove account");
+              showAlert(
+                "Error",
+                error instanceof Error ? error.message : "Failed to remove account",
+              );
             } finally {
               setDeleting(null);
             }
           },
         },
-      ]);
-      return;
-    }
-
-    if (!window.confirm(message)) {
-      return;
-    }
-
-    void (async () => {
-      setDeleting(account.id);
-      try {
-        console.log(`[DEBUG] Deleting account ${account.id}`);
-        const response = await api.delete(`/instagram-accounts/${account.id}/`);
-        console.log(`[DEBUG] Delete response:`, response);
-        setAccounts((current) => current.filter((a) => a.id !== account.id));
-        window.alert(`@${account.username} has been removed.`);
-      } catch (error) {
-        console.error(`[DEBUG] Delete error:`, error);
-        window.alert(error instanceof Error ? error.message : "Failed to remove account");
-      } finally {
-        setDeleting(null);
-      }
-    })();
+      ],
+      { dismissable: false },
+    );
   };
 
   useFocusEffect(
@@ -94,6 +87,8 @@ export default function InstagramAccountsScreen() {
       void loadAccounts();
     }, [loadAccounts]),
   );
+
+  const showSkeleton = isLoading && accounts.length === 0;
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={["top", "left", "right"]}>
@@ -113,40 +108,60 @@ export default function InstagramAccountsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Account Cards */}
-          {accounts.map((account) => (
-            <View
-              key={account.id}
-              className="bg-neutral-900 rounded-2xl flex-row items-center justify-between px-4 py-4 mb-3"
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-12 h-12 rounded-full bg-neutral-600 items-center justify-center mr-3">
-                  <Text className="text-white text-lg font-bold">
-                    {account.username.slice(0, 2).toUpperCase()}
-                  </Text>
+          {showSkeleton ? (
+            <View>
+              {[0, 1, 2].map((idx) => (
+                <View
+                  key={idx}
+                  className="bg-neutral-900 rounded-2xl flex-row items-center justify-between px-4 py-4 mb-3"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <Skeleton className="w-12 h-12 rounded-full mr-3" />
+                    <View className="flex-1">
+                      <Skeleton className="w-32 h-4 rounded-md" />
+                      <Skeleton className="w-40 h-3 rounded-md mt-2" />
+                    </View>
+                  </View>
+                  <Skeleton className="w-6 h-6 rounded-full" />
                 </View>
-                <View>
-                  <Text className="text-white text-sm font-bold">
-                    @{account.username}
-                  </Text>
-                  <Text className="text-neutral-500 text-xs mt-0.5">
-                    {account.is_verified ? "Verified" : "Pending verification"}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => handleDeleteAccount(account)}
-                disabled={deleting === account.id}
-                activeOpacity={0.6}
-                className="p-2 -mr-2"
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={22}
-                  color={deleting === account.id ? "#999" : "#ef4444"}
-                />
-              </TouchableOpacity>
+              ))}
             </View>
-          ))}
+          ) : (
+            accounts.map((account) => (
+              <View
+                key={account.id}
+                className="bg-neutral-900 rounded-2xl flex-row items-center justify-between px-4 py-4 mb-3"
+              >
+                <View className="flex-row items-center flex-1">
+                  <View className="w-12 h-12 rounded-full bg-neutral-600 items-center justify-center mr-3">
+                    <Text className="text-white text-lg font-bold">
+                      {account.username.slice(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text className="text-white text-sm font-bold">
+                      @{account.username}
+                    </Text>
+                    <Text className="text-neutral-500 text-xs mt-0.5">
+                      {account.is_verified ? "Verified" : "Pending verification"}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleDeleteAccount(account)}
+                  disabled={deleting === account.id}
+                  activeOpacity={0.6}
+                  className="p-2 -mr-2"
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={22}
+                    color={deleting === account.id ? "#999" : "#ef4444"}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </ScrollView>
 
         {/* Add More Accounts Button */}

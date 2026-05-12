@@ -1,17 +1,18 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,6 +29,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function ContactFormScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -36,17 +38,20 @@ export default function ContactFormScreen() {
 
   const handleSubmit = async () => {
     if (!name || !email || !phone || !concern) {
-      Alert.alert("Error", "Please fill in all fields.");
+      showAlert("Error", "Please fill in all fields.");
       return;
     }
     try {
       setLoading(true);
       await api.post("/contact/", { name, email, phone, concern });
-      Alert.alert("Submitted", "We will reach out to you ASAP!", [
+      showAlert("Submitted", "We will reach out to you ASAP!", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to submit");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to submit",
+      );
     } finally {
       setLoading(false);
     }
@@ -147,11 +152,12 @@ export default function ContactFormScreen() {
               style={{ borderRadius: 28, padding: 2 }}
             >
               <TouchableOpacity
-                className="rounded-full items-center py-4 bg-neutral-950"
+                className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
                 onPress={handleSubmit}
                 activeOpacity={0.8}
                 disabled={loading}
               >
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 <Text className="text-white text-base font-semibold">
                   {loading ? "Submitting..." : "Submit"}
                 </Text>

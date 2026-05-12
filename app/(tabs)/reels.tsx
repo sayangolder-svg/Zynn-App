@@ -1,3 +1,4 @@
+import { useAlert } from "@/components/app-alert";
 import SlideToActivate from "@/components/slide-to-activate";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
@@ -7,7 +8,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Image,
   Keyboard,
@@ -66,13 +66,14 @@ function ProductRow({
   onRemove: () => void;
   pricesPending?: boolean;
 }) {
+  const { showAlert } = useAlert();
   const numericPrice = Number(product.price.replace(/[^\d.]/g, ""));
   const isPendingPrice = pricesPending && (!Number.isFinite(numericPrice) || numericPrice <= 0);
 
   const handleCopyLink = async () => {
     if (!product.product_link) return;
     await Clipboard.setStringAsync(product.product_link);
-    Alert.alert("Copied", "Buy link copied to clipboard.");
+    showAlert("Copied", "Buy link copied to clipboard.");
   };
 
   return (
@@ -313,6 +314,7 @@ function AddProductLinkSection({
 
 export default function AddReelScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [reelLink, setReelLink] = useState("");
   const [inlineError, setInlineError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -451,7 +453,7 @@ export default function AddReelScreen() {
       }
 
       if (data.warning) {
-        Alert.alert("Heads up", data.warning);
+        showAlert("Heads up", data.warning);
       }
     } catch (error) {
       const maybeError = error as { message?: string; status?: number } | null;
@@ -464,10 +466,7 @@ export default function AddReelScreen() {
         (typeof maybeError?.message === "string" && maybeError.message) ||
         "Failed to fetch reel details";
       setInlineError(message);
-      Alert.alert(
-        "Error",
-        message,
-      );
+      showAlert("Error", message);
       setReelPreview(null);
       setProducts([]);
       setReelId(null);
@@ -497,9 +496,9 @@ export default function AddReelScreen() {
         pollIntervalRef.current = null;
       }
       await api.post(`/reels/${reelId}/activate/`);
-      Alert.alert("Campaign Activated!", "Your reel campaign is now live.");
+      showAlert("Campaign Activated!", "Your reel campaign is now live.");
     } catch (error) {
-      Alert.alert(
+      showAlert(
         "Error",
         error instanceof Error ? error.message : "Failed to activate campaign",
       );
@@ -691,6 +690,14 @@ export default function AddReelScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+      {activating ? (
+        <View className="absolute inset-0 bg-black/70 items-center justify-center">
+          <ActivityIndicator size="large" color="#FB812F" />
+          <Text className="text-neutral-200 text-sm mt-3">
+            Activating campaign...
+          </Text>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

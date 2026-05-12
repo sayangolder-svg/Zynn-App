@@ -1,3 +1,4 @@
+import Skeleton from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -46,13 +47,47 @@ function getNotificationColor(type: NotificationType): string {
   }
 }
 
+function NotificationsSkeleton() {
+  return (
+    <View className="mt-4">
+      {[0, 1, 2, 3].map((idx) => (
+        <View
+          key={idx}
+          className="bg-neutral-900 rounded-2xl p-4 flex-row items-start mb-3"
+        >
+          <Skeleton className="w-10 h-10 rounded-full mr-3" />
+          <View className="flex-1">
+            <Skeleton className="w-40 h-4 rounded-md" />
+            <Skeleton className="w-full h-3 rounded-md mt-2" />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
-      api.get<Notification[]>("/notifications/").then(setNotifications).catch(() => {});
+      let active = true;
+      setIsLoading(true);
+      api
+        .get<Notification[]>("/notifications/")
+        .then((data) => {
+          if (active) setNotifications(data);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (active) setIsLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
     }, []),
   );
 
@@ -74,7 +109,11 @@ export default function NotificationsScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {unread.length > 0 && (
+        {isLoading && notifications.length === 0 ? (
+          <NotificationsSkeleton />
+        ) : null}
+
+        {!isLoading && unread.length > 0 && (
           <>
             <Text className="text-neutral-500 text-xs uppercase tracking-wider mt-4 mb-3">New</Text>
             {unread.map((notification) => (
@@ -101,7 +140,7 @@ export default function NotificationsScreen() {
           </>
         )}
 
-        {read.length > 0 && (
+        {!isLoading && read.length > 0 && (
           <>
             <Text className="text-neutral-500 text-xs uppercase tracking-wider mt-5 mb-3">Earlier</Text>
             {read.map((notification) => (

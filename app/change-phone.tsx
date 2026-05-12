@@ -1,10 +1,11 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -27,6 +28,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function ChangePhoneScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +43,10 @@ export default function ChangePhoneScreen() {
         params: { phone: cleanPhone },
       });
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to send OTP");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to send OTP",
+      );
     } finally {
       setLoading(false);
     }
@@ -94,11 +99,12 @@ export default function ChangePhoneScreen() {
               style={{ borderRadius: 28, padding: 2 }}
             >
               <TouchableOpacity
-                className="rounded-full items-center py-4 bg-neutral-950"
+                className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
                 onPress={handleSendOtp}
                 activeOpacity={0.8}
                 disabled={loading}
               >
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 <Text className="text-white text-base font-semibold">
                   {loading ? "Sending..." : "Send OTP"}
                 </Text>

@@ -1,17 +1,18 @@
+import { useAlert } from "@/components/app-alert";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,6 +31,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function IGOtpScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const { username } = useLocalSearchParams<{ username: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -67,7 +69,10 @@ export default function IGOtpScreen() {
       await api.post("/auth/instagram/verify/", { username, otp: code });
       router.replace("/instagram-accounts" as any);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Verification failed");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Verification failed",
+      );
     } finally {
       setLoading(false);
     }
@@ -79,13 +84,19 @@ export default function IGOtpScreen() {
         if (!username) return;
         const response = await api.post<{ otp_debug?: string; email?: string }>("/auth/instagram/start/", { username });
         if (response?.otp_debug) {
-          Alert.alert("Dev OTP", `Code sent to ${response.email || "your email"}: ${response.otp_debug}`);
+          showAlert(
+            "Dev OTP",
+            `Code sent to ${response.email || "your email"}: ${response.otp_debug}`,
+          );
         }
         setResendTimer(30);
         setOtp(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       } catch (error) {
-        Alert.alert("Error", error instanceof Error ? error.message : "Failed to resend OTP");
+        showAlert(
+          "Error",
+          error instanceof Error ? error.message : "Failed to resend OTP",
+        );
       }
     }
   };
@@ -154,11 +165,12 @@ export default function IGOtpScreen() {
             style={{ borderRadius: 28, padding: 2 }}
           >
             <TouchableOpacity
-              className="rounded-full items-center py-4 bg-neutral-950"
+              className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
               onPress={handleVerify}
               activeOpacity={0.8}
               disabled={loading}
             >
+              {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
               <Text className="text-white text-base font-semibold">
                 {loading ? "Verifying..." : "Verify and continue"}
               </Text>

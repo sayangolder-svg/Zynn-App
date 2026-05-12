@@ -1,3 +1,4 @@
+import Skeleton from "@/components/skeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { clearAuthToken } from "@/lib/session";
@@ -25,18 +26,29 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [name, setName] = useState("HELLO XYZ");
   const [email, setEmail] = useState("xyz@gmail.com");
+  const [profileLoading, setProfileLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
+      let active = true;
+      setProfileLoading(true);
       api
         .get<{ name: string; email: string }>("/profile/")
         .then((data) => {
+          if (!active) return;
           setName(data.name || "HELLO XYZ");
           setEmail(data.email || "No email");
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          if (active) setProfileLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
     }, []),
   );
 
@@ -120,15 +132,23 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Card */}
-        <View className="bg-neutral-900 rounded-2xl items-center py-6 mt-3">
-          <View className="w-20 h-20 rounded-full bg-neutral-600 items-center justify-center mb-3">
-            <Text className="text-white text-2xl font-bold">
-              {name.slice(0, 2).toUpperCase()}
-            </Text>
+        {profileLoading ? (
+          <View className="bg-neutral-900 rounded-2xl items-center py-6 mt-3">
+            <Skeleton className="w-20 h-20 rounded-full mb-3" />
+            <Skeleton className="w-28 h-4 rounded-md" />
+            <Skeleton className="w-40 h-3 rounded-md mt-2" />
           </View>
-          <Text className="text-white text-base font-bold">{name}</Text>
-          <Text className="text-neutral-500 text-sm mt-0.5">{email}</Text>
-        </View>
+        ) : (
+          <View className="bg-neutral-900 rounded-2xl items-center py-6 mt-3">
+            <View className="w-20 h-20 rounded-full bg-neutral-600 items-center justify-center mb-3">
+              <Text className="text-white text-2xl font-bold">
+                {name.slice(0, 2).toUpperCase()}
+              </Text>
+            </View>
+            <Text className="text-white text-base font-bold">{name}</Text>
+            <Text className="text-neutral-500 text-sm mt-0.5">{email}</Text>
+          </View>
+        )}
 
         {/* Menu Items */}
         <View className="mt-6">

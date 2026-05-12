@@ -1,17 +1,18 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,6 +29,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [name, setName] = useState("HELLO XYZ");
   const [email, setEmail] = useState("xyz@gmail.com");
   const [bio, setBio] = useState("");
@@ -50,21 +52,24 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Name cannot be empty.");
+      showAlert("Error", "Name cannot be empty.");
       return;
     }
     if (!email.trim()) {
-      Alert.alert("Error", "Email cannot be empty.");
+      showAlert("Error", "Email cannot be empty.");
       return;
     }
     try {
       setLoading(true);
       await api.put("/profile/", { name: name.trim(), email: email.trim(), bio });
-      Alert.alert("Saved", "Your profile has been updated.", [
+      showAlert("Saved", "Your profile has been updated.", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to update profile");
+      showAlert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to update profile",
+      );
     } finally {
       setLoading(false);
     }
@@ -197,11 +202,12 @@ export default function EditProfileScreen() {
               style={{ borderRadius: 28, padding: 2 }}
             >
               <TouchableOpacity
-                className="rounded-full items-center py-4 bg-neutral-950"
+                className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
                 activeOpacity={0.7}
                 onPress={handleSave}
                 disabled={loading}
               >
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 <Text className="text-white text-base font-semibold">
                   {loading ? "Saving..." : "Save Changes"}
                 </Text>

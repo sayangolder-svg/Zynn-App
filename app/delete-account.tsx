@@ -1,10 +1,11 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { clearAuthToken } from "@/lib/session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -26,6 +27,7 @@ const REASONS = [
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherReason, setOtherReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
@@ -36,7 +38,7 @@ export default function DeleteAccountScreen() {
   const handleDelete = () => {
     if (!canDelete) return;
 
-    Alert.alert(
+    showAlert(
       "Final Confirmation",
       "This will permanently delete your account, all earnings data, bank details, and campaign history. This cannot be undone.",
       [
@@ -53,14 +55,14 @@ export default function DeleteAccountScreen() {
                 confirm_text: confirmText,
               });
               await clearAuthToken();
-              Alert.alert("Account Deleted", "Your account has been deleted.", [
+              showAlert("Account Deleted", "Your account has been deleted.", [
                 {
                   text: "OK",
                   onPress: () => router.replace("/(auth)/landing" as any),
                 },
               ]);
             } catch (error: unknown) {
-              Alert.alert(
+              showAlert(
                 "Error",
                 error instanceof Error ? error.message : "Failed to delete account",
               );
@@ -70,6 +72,7 @@ export default function DeleteAccountScreen() {
           },
         },
       ],
+      { dismissable: false },
     );
   };
 
@@ -184,11 +187,12 @@ export default function DeleteAccountScreen() {
           <View className="px-5 pb-8">
             {canDelete ? (
               <TouchableOpacity
-                className="rounded-full items-center py-4 bg-red-600"
+                className="rounded-full items-center justify-center py-4 bg-red-600 flex-row gap-2"
                 activeOpacity={0.7}
                 onPress={handleDelete}
                 disabled={loading}
               >
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 <Text className="text-white text-base font-semibold">
                   {loading ? "Deleting..." : "Delete My Account"}
                 </Text>

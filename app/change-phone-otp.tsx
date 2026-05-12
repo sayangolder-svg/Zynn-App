@@ -1,16 +1,17 @@
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,6 +30,7 @@ const GRADIENT_LOCATIONS = [0, 0.16, 0.31, 0.44, 0.53, 0.69, 1] as const;
 
 export default function ChangePhoneOtpScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -65,12 +67,12 @@ export default function ChangePhoneOtpScreen() {
     api
       .post("/profile/change-phone/verify/", { phone, otp: code })
       .then(() => {
-        Alert.alert("Success", "Phone number changed successfully.", [
+        showAlert("Success", "Phone number changed successfully.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       })
       .catch((error: unknown) => {
-        Alert.alert(
+        showAlert(
           "Error",
           error instanceof Error ? error.message : "Failed to verify OTP",
         );
@@ -87,7 +89,10 @@ export default function ChangePhoneOtpScreen() {
         setOtp(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       } catch (error) {
-        Alert.alert("Error", error instanceof Error ? error.message : "Failed to resend OTP");
+        showAlert(
+          "Error",
+          error instanceof Error ? error.message : "Failed to resend OTP",
+        );
       }
     }
   };
@@ -165,11 +170,12 @@ export default function ChangePhoneOtpScreen() {
               style={{ borderRadius: 28, padding: 2 }}
             >
               <TouchableOpacity
-                className="rounded-full items-center py-4 bg-neutral-950"
+                className="rounded-full items-center justify-center py-4 bg-neutral-950 flex-row gap-2"
                 onPress={handleSubmit}
                 activeOpacity={0.8}
                 disabled={loading}
               >
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : null}
                 <Text className="text-white text-base font-semibold">
                   {loading ? "Submitting..." : "Submit OTP"}
                 </Text>
