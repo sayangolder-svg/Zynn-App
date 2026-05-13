@@ -38,7 +38,15 @@ export default function ContactFormScreen() {
 
   const handleSubmit = async () => {
     if (!name || !email || !phone || !concern) {
-      showAlert("Error", "Please fill in all fields.");
+      showAlert("Missing details", "Please fill in all fields.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showAlert("Check email", "Please enter a valid email address.");
+      return;
+    }
+    if (!/^\+?[0-9]{10,15}$/.test(phone.replace(/\s+/g, ""))) {
+      showAlert("Check phone", "Please enter a valid phone number.");
       return;
     }
     try {
@@ -49,7 +57,7 @@ export default function ContactFormScreen() {
       ]);
     } catch (error) {
       showAlert(
-        "Error",
+        "Couldn’t submit form",
         error instanceof Error ? error.message : "Failed to submit",
       );
     } finally {

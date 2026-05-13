@@ -37,20 +37,35 @@ export default function BankDetailsScreen() {
   const [pan, setPan] = useState("");
   const [holderName, setHolderName] = useState("");
   const [loading, setLoading] = useState(false);
+  const validateBankDetails = () => {
+    const account = accountNumber.trim();
+    const confirm = confirmAccountNumber.trim();
+    const ifscCode = ifsc.trim().toUpperCase();
+    const panCode = pan.trim().toUpperCase();
+    const holder = holderName.trim();
+
+    if (!account || !confirm || !ifscCode || !panCode || !holder) {
+      return "Please fill in all bank details.";
+    }
+    if (!/^\d{9,18}$/.test(account)) {
+      return "Please enter a valid account number.";
+    }
+    if (account !== confirm) {
+      return "Account numbers do not match.";
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+      return "Please enter a valid IFSC code.";
+    }
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panCode)) {
+      return "Please enter a valid PAN number.";
+    }
+    return "";
+  };
 
   const handleSave = async () => {
-    if (
-      !accountNumber ||
-      !confirmAccountNumber ||
-      !ifsc ||
-      !pan ||
-      !holderName
-    ) {
-      showAlert("Error", "Please fill in all fields.");
-      return;
-    }
-    if (accountNumber !== confirmAccountNumber) {
-      showAlert("Error", "Account numbers do not match.");
+    const validationError = validateBankDetails();
+    if (validationError) {
+      showAlert("Check details", validationError);
       return;
     }
     try {
@@ -65,7 +80,7 @@ export default function BankDetailsScreen() {
       router.replace("/(tabs)/earnings" as any);
     } catch (error) {
       showAlert(
-        "Error",
+        "Couldn’t save bank details",
         error instanceof Error ? error.message : "Failed to save bank details",
       );
     } finally {

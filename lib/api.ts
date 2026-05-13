@@ -20,6 +20,26 @@ class ApiError extends Error {
   }
 }
 
+function friendlyMessage(raw: string, status: number) {
+  const text = (raw || "").toLowerCase();
+  if (status === 0) {
+    return "Unable to connect right now. Please check your internet and try again.";
+  }
+  if (text.includes("network") || text.includes("failed to fetch")) {
+    return "Network issue detected. Please try again in a moment.";
+  }
+  if (text.includes("auth token") || text.includes("invalid token") || status === 401) {
+    return "Your session expired. Please log in again.";
+  }
+  if (text.includes("bank account") && text.includes("valid")) {
+    return raw;
+  }
+  if (status >= 500) {
+    return "Our server is busy right now. Please try again shortly.";
+  }
+  return raw || "Something went wrong. Please try again.";
+}
+
 function toQuery(params?: Record<string, string | number | undefined>) {
   if (!params) return "";
   const q = new URLSearchParams();
@@ -53,7 +73,7 @@ export async function apiRequest<T>(
     });
   } catch {
     throw new ApiError(
-      "Cannot reach API server. Set EXPO_PUBLIC_API_BASE_URL to your backend URL.",
+      "Unable to connect right now. Please check your internet and try again.",
       0,
     );
   }
@@ -92,7 +112,7 @@ export async function apiRequest<T>(
       normalized.includes("owner verification failed");
     const message = isReelOwnershipError
       ? "Sorry, this reel doesn't seem to be yours. Please check before sharing again."
-      : rawMessage;
+      : friendlyMessage(String(rawMessage || ""), response.status);
     throw new ApiError(message, response.status);
   }
   return data as T;

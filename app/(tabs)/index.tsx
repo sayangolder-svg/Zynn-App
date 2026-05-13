@@ -1,5 +1,6 @@
 import Skeleton from "@/components/skeleton";
 import StatCard from "@/components/stat-card";
+import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
@@ -130,6 +131,7 @@ function HomeSkeleton() {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [reels, setReels] = useState<ShoppableReel[]>([]);
   const [summary, setSummary] = useState<EarningsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -213,6 +215,26 @@ export default function HomeScreen() {
   );
 
   const showSkeleton = isLoading && reels.length === 0 && !summary;
+  const removeReel = (id: number) => {
+    showAlert("Remove Reel", "This reel will be removed from Home.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          api
+            .delete(`/reels/${id}/`)
+            .then(() => setReels((prev) => prev.filter((item) => item.id !== id)))
+            .catch((error: unknown) =>
+              showAlert(
+                "Couldn’t remove reel",
+                error instanceof Error ? error.message : "Please try again.",
+              ),
+            );
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-black pt-5" edges={["top", "left", "right"]}>
@@ -226,9 +248,12 @@ export default function HomeScreen() {
         ) : (
           <>
             <View className="flex-row items-center justify-between px-5 mb-2">
-              <View className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700">
+              <TouchableOpacity
+                className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700"
+                onPress={() => router.push("/(tabs)/settings" as any)}
+              >
                 <Ionicons name="person-outline" size={20} color="#aaa" />
-              </View>
+              </TouchableOpacity>
               <TouchableOpacity
                 className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700"
                 onPress={() => router.push("/notifications" as any)}
@@ -260,18 +285,33 @@ export default function HomeScreen() {
             </View>
 
             <View className="px-5">
-              {reels.map((reel) => (
-                <ReelCard
-                  key={reel.id}
-                  reel={reel}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/campaign-details",
-                      params: { reelId: String(reel.id) },
-                    })
-                  }
-                />
-              ))}
+              {reels.length === 0 ? (
+                <View className="bg-neutral-900 rounded-2xl p-4">
+                  <Text className="text-neutral-300 text-sm">
+                    Your Uploaded products from reel willl be displayed here
+                  </Text>
+                </View>
+              ) : (
+                reels.map((reel) => (
+                  <View key={reel.id}>
+                    <ReelCard
+                      reel={reel}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/campaign-details",
+                          params: { reelId: String(reel.id) },
+                        })
+                      }
+                    />
+                    <TouchableOpacity
+                      className="mb-4 mt-[-8px] self-end"
+                      onPress={() => removeReel(reel.id)}
+                    >
+                      <Text className="text-red-400 text-xs underline">Remove link</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
             </View>
           </>
         )}

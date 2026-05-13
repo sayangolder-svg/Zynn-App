@@ -342,7 +342,9 @@ export default function AddReelScreen() {
   const [isCampaignActivated, setIsCampaignActivated] = useState(false);
   const [ingestionStatus, setIngestionStatus] = useState<string>("");
   const [ingestionWarning, setIngestionWarning] = useState<string>("");
+  const [fetchProgress, setFetchProgress] = useState(0);
   const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pollCartForUpdates = async (cid: string) => {
     try {
@@ -417,6 +419,11 @@ export default function AddReelScreen() {
   const fetchReelData = async (url: string) => {
     Keyboard.dismiss();
     setIsLoading(true);
+    setFetchProgress(8);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = setInterval(() => {
+      setFetchProgress((prev) => (prev >= 92 ? prev : prev + 8));
+    }, 350);
     try {
       const data = await api.post<ReelProcessApiResponse>("/app/reels/process/", {
         reel_link: url,
@@ -472,6 +479,7 @@ export default function AddReelScreen() {
       if (data.warning) {
         showAlert("Heads up", data.warning);
       }
+      setFetchProgress(100);
     } catch (error) {
       const maybeError = error as { message?: string; status?: number } | null;
       const ownershipMessage =
@@ -483,7 +491,7 @@ export default function AddReelScreen() {
         (typeof maybeError?.message === "string" && maybeError.message) ||
         "Failed to fetch reel details";
       setInlineError(message);
-      showAlert("Error", message);
+      showAlert("Couldn’t fetch reel", message);
       setReelPreview(null);
       setProducts([]);
       setReelId(null);
@@ -492,7 +500,12 @@ export default function AddReelScreen() {
       setIngestionWarning("");
       setPricesPending(false);
     } finally {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setIsLoading(false);
+      setTimeout(() => setFetchProgress(0), 300);
     }
   };
 
@@ -529,6 +542,9 @@ export default function AddReelScreen() {
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
       }
     };
   }, []);
@@ -600,11 +616,22 @@ export default function AddReelScreen() {
                 ) : null}
 
                 {isLoading && (
-                  <View className="items-center mt-8">
+                  <View className="mt-8">
+                    <View className="h-2 rounded-full bg-neutral-800 overflow-hidden">
+                      <View
+                        className="h-full bg-amber-400"
+                        style={{ width: `${Math.max(fetchProgress, 6)}%` }}
+                      />
+                    </View>
+                    <Text className="text-amber-300 text-xs mt-2">
+                      {Math.min(fetchProgress, 100)}% completed
+                    </Text>
+                    <View className="items-center mt-3">
                     <ActivityIndicator size="large" color="#FB812F" />
                     <Text className="text-neutral-500 text-sm mt-3">
-                      Fetching reel details...
+                      Fetching reel details. This can take a few seconds.
                     </Text>
+                    </View>
                   </View>
                 )}
               </>
