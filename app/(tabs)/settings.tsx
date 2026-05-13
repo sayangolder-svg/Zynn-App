@@ -77,11 +77,11 @@ export default function SettingsScreen() {
       label: "Instagram account",
       onPress: () => router.push("/instagram-accounts" as any),
     },
-    {
-      icon: "call-outline",
-      label: "Change Phone number",
-      onPress: () => router.push("/change-phone" as any),
-    },
+    // {
+    //   icon: "call-outline",
+    //   label: "Change Phone number",
+    //   onPress: () => router.push("/change-phone" as any),
+    // },
     {
       icon: "card-outline",
       label: "Payment policy",
