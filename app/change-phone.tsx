@@ -62,12 +62,14 @@ export default function ChangePhoneScreen() {
         <Text className="text-white text-lg font-bold">
           Change Phone Number
         </Text>
+        {/*
         <TouchableOpacity
           className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700"
           onPress={() => router.push("/notifications" as any)}
         >
           <Ionicons name="notifications-outline" size={20} color="#aaa" />
         </TouchableOpacity>
+        */}
       </View>
 
       <KeyboardAvoidingView

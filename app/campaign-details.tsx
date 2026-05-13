@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -99,6 +99,7 @@ export default function CampaignDetailsScreen() {
   const { showAlert } = useAlert();
   const { reelId } = useLocalSearchParams<{ reelId: string }>();
   const [campaign, setCampaign] = useState<ReelDetails | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const loadCampaign = useCallback(async () => {
     if (!reelId) return;
@@ -115,12 +116,22 @@ export default function CampaignDetailsScreen() {
   );
 
   const toggleActive = async (next: boolean) => {
-    if (!campaign) return;
+    if (!campaign || isUpdatingStatus) return;
+    const previous = campaign;
+    const status: ReelStatus = next ? "Live" : "Paused";
+    setCampaign({ ...campaign, is_active: next, status });
+    setIsUpdatingStatus(true);
     try {
-      const status: ReelStatus = next ? "Live" : "Paused";
       await api.patch(`/reels/${campaign.id}/`, { is_active: next, status });
-      setCampaign({ ...campaign, is_active: next, status });
-    } catch {}
+    } catch (error) {
+      setCampaign(previous);
+      showAlert(
+        "Couldn’t update status",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   if (!campaign) {
@@ -140,12 +151,14 @@ export default function CampaignDetailsScreen() {
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text className="text-white text-base font-semibold">Campaign Details</Text>
+        {/*
         <TouchableOpacity
           className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700"
           onPress={() => router.push("/notifications" as any)}
         >
           <Ionicons name="notifications-outline" size={20} color="#aaa" />
         </TouchableOpacity>
+        */}
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
@@ -185,12 +198,16 @@ export default function CampaignDetailsScreen() {
                 </Text>
               </View>
             </View>
-            <View className="ml-3">
+            <View className="ml-3 flex-row items-center gap-2">
+              {isUpdatingStatus ? (
+                <ActivityIndicator size="small" color={statusStyle.dotColor} />
+              ) : null}
               <Switch
                 value={campaign.is_active}
                 onValueChange={toggleActive}
                 trackColor={{ false: "#444", true: statusStyle.trackColor }}
                 thumbColor="#fff"
+                disabled={isUpdatingStatus}
                 style={{ transform: [{ scale: 0.8 }] }}
               />
             </View>

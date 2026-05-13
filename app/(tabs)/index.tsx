@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ReelStatus = "Live" | "Draft" | "Paused";
@@ -37,7 +37,17 @@ function getStatusStyle(status: ReelStatus) {
   }
 }
 
-function ReelCard({ reel, onPress }: { reel: ShoppableReel; onPress?: () => void }) {
+function ReelCard({
+  reel,
+  onPress,
+  onRemove,
+  isRemoving,
+}: {
+  reel: ShoppableReel;
+  onPress?: () => void;
+  onRemove?: () => void;
+  isRemoving?: boolean;
+}) {
   const statusStyle = getStatusStyle(reel.status);
   return (
     <TouchableOpacity
@@ -76,12 +86,28 @@ function ReelCard({ reel, onPress }: { reel: ShoppableReel; onPress?: () => void
         <Text className="text-neutral-400 text-sm mb-1" numberOfLines={2}>
           {reel.description || "No description"}
         </Text>
-        <View className="flex-row items-center">
-          <Text className="text-amber-500 text-sm font-bold">{reel.shares}</Text>
-          <Text className="text-neutral-500 text-xs ml-1">SHARES</Text>
-          <Text className="text-neutral-600 text-xs mx-2">|</Text>
-          <Text className="text-sky-400 text-sm font-bold">{reel.productCount}</Text>
-          <Text className="text-neutral-500 text-xs ml-1">PRODUCTS</Text>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <Text className="text-amber-500 text-sm font-bold">{reel.shares}</Text>
+            <Text className="text-neutral-500 text-xs ml-1">SHARES</Text>
+            <Text className="text-neutral-600 text-xs mx-2">|</Text>
+            <Text className="text-sky-400 text-sm font-bold">{reel.productCount}</Text>
+            <Text className="text-neutral-500 text-xs ml-1">PRODUCTS</Text>
+          </View>
+          {onRemove ? (
+            <TouchableOpacity
+              onPress={onRemove}
+              accessibilityLabel="Remove reel"
+              className="p-1"
+              disabled={isRemoving}
+            >
+              {isRemoving ? (
+                <ActivityIndicator size="small" color="#f87171" />
+              ) : (
+                <Ionicons name="trash-outline" size={16} color="#f87171" />
+              )}
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </TouchableOpacity>
@@ -135,6 +161,7 @@ export default function HomeScreen() {
   const [reels, setReels] = useState<ShoppableReel[]>([]);
   const [summary, setSummary] = useState<EarningsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -222,6 +249,11 @@ export default function HomeScreen() {
         text: "Remove",
         style: "destructive",
         onPress: () => {
+          setRemovingIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+          });
           api
             .delete(`/reels/${id}/`)
             .then(() => setReels((prev) => prev.filter((item) => item.id !== id)))
@@ -230,7 +262,14 @@ export default function HomeScreen() {
                 "Couldn’t remove reel",
                 error instanceof Error ? error.message : "Please try again.",
               ),
-            );
+            )
+            .finally(() => {
+              setRemovingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            });
         },
       },
     ]);
@@ -254,12 +293,14 @@ export default function HomeScreen() {
               >
                 <Ionicons name="person-outline" size={20} color="#aaa" />
               </TouchableOpacity>
+              {/*
               <TouchableOpacity
                 className="w-10 h-10 rounded-full bg-neutral-800 items-center justify-center border border-neutral-700"
                 onPress={() => router.push("/notifications" as any)}
               >
                 <Ionicons name="notifications-outline" size={20} color="#aaa" />
               </TouchableOpacity>
+              */}
             </View>
 
             <View className="px-5 mt-4 mb-4">
@@ -302,13 +343,9 @@ export default function HomeScreen() {
                           params: { reelId: String(reel.id) },
                         })
                       }
+                      onRemove={() => removeReel(reel.id)}
+                      isRemoving={removingIds.has(reel.id)}
                     />
-                    <TouchableOpacity
-                      className="mb-4 mt-[-8px] self-end"
-                      onPress={() => removeReel(reel.id)}
-                    >
-                      <Text className="text-red-400 text-xs underline">Remove link</Text>
-                    </TouchableOpacity>
                   </View>
                 ))
               )}

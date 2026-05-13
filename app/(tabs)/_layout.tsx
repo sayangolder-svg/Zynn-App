@@ -106,6 +106,9 @@ export default function TabsLayout() {
           borderTopWidth: 0.5,
           elevation: 0,
           shadowOpacity: 0,
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: "#fff",
         tabBarInactiveTintColor: "#666",
@@ -113,11 +116,13 @@ export default function TabsLayout() {
           fontSize: 11,
           fontWeight: "500",
           textTransform: "none",
+          lineHeight: 12,
+          includeFontPadding: false,
         },
         tabBarItemStyle: {
           flexDirection: "column",
           alignItems: "center",
-          paddingVertical: 6,
+          paddingVertical: 4,
         },
       }}
     >
