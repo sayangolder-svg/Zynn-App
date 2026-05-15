@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
+import { isValidEmail } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -24,7 +25,11 @@ export default function EmailScreen() {
 
   const handleSendOTP = async () => {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes("@")) {
+    if (!cleanEmail) {
+      showAlert("Missing email", "Please enter your email address.");
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
       showAlert("Invalid email", "Please enter a valid email address.");
       return;
     }

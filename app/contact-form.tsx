@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
+import { isValidEmail, isValidPhone, normalizePhone } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -37,21 +38,31 @@ export default function ContactFormScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!name || !email || !phone || !concern) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = normalizePhone(phone);
+    const trimmedConcern = concern.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedPhone || !trimmedConcern) {
       showAlert("Missing details", "Please fill in all fields.");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!isValidEmail(trimmedEmail)) {
       showAlert("Check email", "Please enter a valid email address.");
       return;
     }
-    if (!/^\+?[0-9]{10,15}$/.test(phone.replace(/\s+/g, ""))) {
+    if (!isValidPhone(trimmedPhone)) {
       showAlert("Check phone", "Please enter a valid phone number.");
       return;
     }
     try {
       setLoading(true);
-      await api.post("/contact/", { name, email, phone, concern });
+      await api.post("/contact/", {
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
+        concern: trimmedConcern,
+      });
       showAlert("Submitted", "We will reach out to you ASAP!", [
         { text: "OK", onPress: () => router.back() },
       ]);

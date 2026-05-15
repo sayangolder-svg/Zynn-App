@@ -33,10 +33,24 @@ export default function DeleteAccountScreen() {
   const [confirmText, setConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canDelete = selectedReason && confirmText === "DELETE";
+  const normalizedConfirm = confirmText.trim().toUpperCase();
+  const hasOtherReason =
+    selectedReason !== "Other" || otherReason.trim().length > 0;
+  const canDelete = !!selectedReason && hasOtherReason && normalizedConfirm === "DELETE";
 
   const handleDelete = () => {
-    if (!canDelete) return;
+    if (!selectedReason) {
+      showAlert("Missing reason", "Please select a reason for deletion.");
+      return;
+    }
+    if (selectedReason === "Other" && !otherReason.trim()) {
+      showAlert("Missing reason", "Please specify your reason.");
+      return;
+    }
+    if (normalizedConfirm !== "DELETE") {
+      showAlert("Confirm deletion", "Type DELETE to confirm.");
+      return;
+    }
 
     showAlert(
       "Final Confirmation",
@@ -51,8 +65,8 @@ export default function DeleteAccountScreen() {
             try {
               await api.post("/delete-account/", {
                 reason: selectedReason,
-                other_reason: otherReason,
-                confirm_text: confirmText,
+                other_reason: otherReason.trim(),
+                confirm_text: normalizedConfirm,
               });
               await clearAuthToken();
               showAlert("Account Deleted", "Your account has been deleted.", [

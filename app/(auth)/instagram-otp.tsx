@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { api } from "@/lib/api";
+import { isValidOtp } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -35,11 +36,12 @@ export default function InstagramOtpScreen() {
   }, [resendTimer]);
 
   const handleChange = (text: string, index: number) => {
+    const nextValue = text.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otp];
-    newOtp[index] = text;
+    newOtp[index] = nextValue;
     setOtp(newOtp);
 
-    if (text && index < OTP_LENGTH - 1) {
+    if (nextValue && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -52,7 +54,14 @@ export default function InstagramOtpScreen() {
 
   const handleVerify = async () => {
     const code = otp.join("");
-    if (code.length !== OTP_LENGTH || !username) return;
+    if (!username) {
+      showAlert("Missing username", "Please restart the flow and try again.");
+      return;
+    }
+    if (!isValidOtp(code, OTP_LENGTH)) {
+      showAlert("Invalid code", "Enter the 6 digit code.");
+      return;
+    }
     try {
       setLoading(true);
       await api.post("/auth/instagram/verify/", { username, otp: code });

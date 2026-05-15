@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
+import { isValidOtp } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -45,11 +46,12 @@ export default function ChangePhoneOtpScreen() {
   }, [resendTimer]);
 
   const handleChange = (text: string, index: number) => {
+    const nextValue = text.replace(/\D/g, "").slice(0, 1);
     const newOtp = [...otp];
-    newOtp[index] = text;
+    newOtp[index] = nextValue;
     setOtp(newOtp);
 
-    if (text && index < OTP_LENGTH - 1) {
+    if (nextValue && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -62,7 +64,14 @@ export default function ChangePhoneOtpScreen() {
 
   const handleSubmit = () => {
     const code = otp.join("");
-    if (code.length !== OTP_LENGTH || !phone) return;
+    if (!phone) {
+      showAlert("Missing phone", "Please restart the flow and try again.");
+      return;
+    }
+    if (!isValidOtp(code, OTP_LENGTH)) {
+      showAlert("Invalid code", "Enter the 6 digit code.");
+      return;
+    }
     setLoading(true);
     api
       .post("/profile/change-phone/verify/", { phone, otp: code })

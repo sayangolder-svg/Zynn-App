@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
+import { isValidEmail } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -51,17 +52,29 @@ export default function EditProfileScreen() {
   );
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedBio = bio.trim();
+
+    if (!trimmedName) {
       showAlert("Error", "Name cannot be empty.");
       return;
     }
-    if (!email.trim()) {
+    if (!trimmedEmail) {
       showAlert("Error", "Email cannot be empty.");
+      return;
+    }
+    if (!isValidEmail(trimmedEmail)) {
+      showAlert("Error", "Please enter a valid email address.");
       return;
     }
     try {
       setLoading(true);
-      await api.put("/profile/", { name: name.trim(), email: email.trim(), bio });
+      await api.put("/profile/", {
+        name: trimmedName,
+        email: trimmedEmail,
+        bio: trimmedBio,
+      });
       showAlert("Saved", "Your profile has been updated.", [
         { text: "OK", onPress: () => router.back() },
       ]);

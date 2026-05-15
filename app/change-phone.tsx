@@ -1,6 +1,7 @@
 import { useAlert } from "@/components/app-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api";
+import { isValidPhone, normalizePhone } from "@/lib/validation";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -33,8 +34,15 @@ export default function ChangePhoneScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSendOtp = async () => {
-    const cleanPhone = phone.trim();
-    if (!cleanPhone) return;
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone) {
+      showAlert("Missing phone", "Please enter your phone number.");
+      return;
+    }
+    if (!isValidPhone(cleanPhone)) {
+      showAlert("Invalid phone", "Please enter a valid phone number.");
+      return;
+    }
     try {
       setLoading(true);
       await api.post("/profile/change-phone/start/", { phone: cleanPhone });
