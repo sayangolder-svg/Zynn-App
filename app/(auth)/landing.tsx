@@ -190,7 +190,7 @@ export default function LandingScreen() {
 
         <View className="w-full gap-4">
 
-          {/* Apple Login */}
+          {/* Apple Login
           <TouchableOpacity
             className="w-full flex-row items-center justify-center rounded-xl border border-neutral-700 bg-neutral-900/50 py-4"
             activeOpacity={0.8}
@@ -205,6 +205,7 @@ export default function LandingScreen() {
               Continue with Apple
             </Text>
           </TouchableOpacity>
+          */}
 
           {/* Google Login */}
           <TouchableOpacity
